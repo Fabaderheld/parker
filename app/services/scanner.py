@@ -10,7 +10,7 @@ from app.models.series import Series
 from app.models.comic import Volume, Comic
 from app.services.archive import ComicArchive
 from app.services.metadata import parse_comicinfo
-
+from app.services.tags import TagService
 
 class LibraryScanner:
     """Scans library directories and imports comics"""
@@ -19,6 +19,7 @@ class LibraryScanner:
         self.library = library
         self.db = db
         self.supported_extensions = ['.cbz', '.cbr']
+        self.tag_service = TagService(db)
 
     def scan(self) -> dict:
         """Scan the library path and import comics"""
@@ -133,27 +134,64 @@ class LibraryScanner:
         volume_num = int(metadata.get('volume', 1)) if metadata.get('volume') else 1
         volume = self._get_or_create_volume(series, volume_num)
 
-        # Create comic
+        # Create comic WITHOUT tags first
         comic = Comic(
             volume_id=volume.id,
             filename=file_path.name,
             file_path=str(file_path),
             file_modified_at=file_mtime,
             page_count=metadata['page_count'],
+
+            # Basic info
             number=metadata.get('number'),
             title=metadata.get('title'),
             summary=metadata.get('summary'),
             year=int(metadata.get('year')) if metadata.get('year') else None,
+            month=int(metadata.get('month')) if metadata.get('month') else None,
+            day=int(metadata.get('day')) if metadata.get('day') else None,
+
+            # Credits
             writer=metadata.get('writer'),
+            penciller=metadata.get('penciller'),
+            inker=metadata.get('inker'),
+            colorist=metadata.get('colorist'),
+            letterer=metadata.get('letterer'),
+            cover_artist=metadata.get('cover_artist'),
+            editor=metadata.get('editor'),
+
+            # Publishing
+            publisher=metadata.get('publisher'),
+            imprint=metadata.get('imprint'),
+            format=metadata.get('format'),
+            series_group=metadata.get('series_group'),
+
+            # Technical
+            scan_information=metadata.get('scan_information'),
+
+            # Reading lists
             alternate_series=metadata.get('alternate_series'),
             alternate_number=metadata.get('alternate_number'),
             story_arc=metadata.get('story_arc'),
+
+            # Full metadata as JSON
             metadata_json=json.dumps(metadata.get('raw_metadata', {}))
         )
 
         self.db.add(comic)
         self.db.commit()
         self.db.refresh(comic)
+
+        # NOW add the many-to-many relationships for tags
+        if metadata.get('characters'):
+            comic.characters = self.tag_service.get_or_create_characters(metadata.get('characters'))
+
+        if metadata.get('teams'):
+            comic.teams = self.tag_service.get_or_create_teams(metadata.get('teams'))
+
+        if metadata.get('locations'):
+            comic.locations = self.tag_service.get_or_create_locations(metadata.get('locations'))
+
+        self.db.commit()
 
         print(f"Imported: {series_name} #{metadata.get('number', '?')} - {file_path.name}")
 
@@ -174,18 +212,48 @@ class LibraryScanner:
         series = self._get_or_create_series(series_name)
         volume = self._get_or_create_volume(series, volume_num)
 
-        # Update comic fields
+        # Update ALL comic fields
         comic.volume_id = volume.id
         comic.file_modified_at = file_mtime
         comic.page_count = metadata['page_count']
+
+        # Basic info
         comic.number = metadata.get('number')
         comic.title = metadata.get('title')
         comic.summary = metadata.get('summary')
         comic.year = int(metadata.get('year')) if metadata.get('year') else None
+        comic.month = int(metadata.get('month')) if metadata.get('month') else None
+        comic.day = int(metadata.get('day')) if metadata.get('day') else None
+
+        # Credits
         comic.writer = metadata.get('writer')
+        comic.penciller = metadata.get('penciller')
+        comic.inker = metadata.get('inker')
+        comic.colorist = metadata.get('colorist')
+        comic.letterer = metadata.get('letterer')
+        comic.cover_artist = metadata.get('cover_artist')
+        comic.editor = metadata.get('editor')
+
+        # Publishing
+        comic.publisher = metadata.get('publisher')
+        comic.imprint = metadata.get('imprint')
+        comic.format = metadata.get('format')
+        comic.series_group = metadata.get('series_group')
+
+        # Technical
+        comic.scan_information = metadata.get('scan_information')
+
+        # Update tags (clear and reassign)
+        comic.characters = self.tag_service.get_or_create_characters(metadata.get('characters', ''))
+        comic.teams = self.tag_service.get_or_create_teams(metadata.get('teams', ''))
+        comic.locations = self.tag_service.get_or_create_locations(metadata.get('locations', ''))
+
+        # Reading lists
         comic.alternate_series = metadata.get('alternate_series')
         comic.alternate_number = metadata.get('alternate_number')
         comic.story_arc = metadata.get('story_arc')
+
+        # Full metadata
         comic.metadata_json = json.dumps(metadata.get('raw_metadata', {}))
         comic.updated_at = datetime.utcnow()
 

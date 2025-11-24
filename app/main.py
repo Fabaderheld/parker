@@ -11,6 +11,7 @@ from app.config import settings
 from app.models.library import Library
 from app.models.series import Series
 from app.models.comic import Volume, Comic
+from app.models.tags import Character, Team, Location
 
 from app.api import libraries, comics, reader
 

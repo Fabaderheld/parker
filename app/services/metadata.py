@@ -10,25 +10,52 @@ def parse_comicinfo(xml_content: bytes) -> Dict[str, Any]:
         # Helper to get text or None
         def get_text(element_name: str) -> Optional[str]:
             elem = root.find(element_name)
-            return elem.text if elem is not None else None
+            return elem.text if elem is not None and elem.text else None
 
         return {
+            # Basic info
             'series': get_text('Series'),
             'number': get_text('Number'),
             'volume': get_text('Volume'),
             'title': get_text('Title'),
             'summary': get_text('Summary'),
+
+            # Date
             'year': get_text('Year'),
             'month': get_text('Month'),
+            'day': get_text('Day'),
+
+            # Credits
             'writer': get_text('Writer'),
             'penciller': get_text('Penciller'),
-            'publisher': get_text('Publisher'),
-            'page_count': get_text('PageCount'),
+            'inker': get_text('Inker'),
+            'colorist': get_text('Colorist'),
+            'letterer': get_text('Letterer'),
+            'cover_artist': get_text('CoverArtist'),
+            'editor': get_text('Editor'),
 
-            # For reading lists
+            # Publishing
+            'publisher': get_text('Publisher'),
+            'imprint': get_text('Imprint'),
+            'format': get_text('Format'),
+            'series_group': get_text('SeriesGroup'),
+
+            # Technical
+            'page_count': get_text('PageCount'),
+            'scan_information': get_text('ScanInformation'),
+
+            # Tags (these come as comma-separated in the XML)
+            'characters': get_text('Characters'),
+            'teams': get_text('Teams'),
+            'locations': get_text('Locations'),
+
+            # Reading lists
             'alternate_series': get_text('AlternateSeries'),
             'alternate_number': get_text('AlternateNumber'),
             'story_arc': get_text('StoryArc'),
+
+            # Web link
+            'web': get_text('Web'),
 
             # Store full XML for future use
             'raw_xml': xml_content.decode('utf-8')
