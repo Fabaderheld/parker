@@ -21,8 +21,14 @@ class LibraryScanner:
         self.supported_extensions = ['.cbz', '.cbr']
         self.tag_service = TagService(db)
 
-    def scan(self) -> dict:
-        """Scan the library path and import comics"""
+    def scan(self, force: bool = False) -> dict:
+        """
+        Scan the library path and import comics
+
+        Args:
+            force: If True, scan all files even if they haven't been modified
+        """
+
         library_path = Path(self.library.path)
 
         if not library_path.exists():
@@ -34,7 +40,7 @@ class LibraryScanner:
         updated = 0
         skipped = 0
 
-        print(f"Scanning {library_path}...")
+        print(f"Scanning {library_path}... (force={force})")
 
         # Track all file paths we've seen
         scanned_paths = set()
@@ -54,13 +60,16 @@ class LibraryScanner:
                     ).first()
 
                     if existing:
-                        # Check if file has been modified
-                        if existing.file_modified_at and existing.file_modified_at >= file_mtime:
+                        # If force=False, skip files that haven't been modified
+                        if not force and existing.file_modified_at and existing.file_modified_at >= file_mtime:
                             skipped += 1
                             continue
                         else:
-                            # File modified - update it
-                            print(f"Updating modified comic: {file_path.name}")
+                            # File modified or force scan - update it
+                            if force:
+                                print(f"Force scanning: {file_path.name}")
+                            else:
+                                print(f"Updating modified comic: {file_path.name}")
                             comic = self._update_comic(existing, file_path, file_mtime)
                             updated += 1
                     else:
@@ -90,6 +99,7 @@ class LibraryScanner:
         return {
             "library": self.library.name,
             "path": self.library.path,
+            "force_scan": force,
             "found": len(found_comics),
             "imported": imported,
             "updated": updated,

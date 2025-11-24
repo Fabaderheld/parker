@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from typing import List
 
@@ -48,14 +48,22 @@ async def delete_library(library_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/{library_id}/scan")
-async def scan_library(library_id: int, db: Session = Depends(get_db)):
-    """Scan a library for comics and import them"""
+async def scan_library(
+        library_id: int,
+        force: bool = Query(False, description="Force scan all files, ignoring modification dates"),
+        db: Session = Depends(get_db)
+):
+    """
+    Scan a library for comics and import them
+
+    - **force**: If true, scans all files even if they haven't been modified since last scan
+    """
     library = db.query(Library).filter(Library.id == library_id).first()
     if not library:
         raise HTTPException(status_code=404, detail="Library not found")
 
     scanner = LibraryScanner(library, db)
-    results = scanner.scan()
+    results = scanner.scan(force=force)
 
     if "error" in results:
         raise HTTPException(status_code=400, detail=results["error"])
