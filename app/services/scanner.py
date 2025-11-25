@@ -63,6 +63,8 @@ class LibraryScanner:
                     # Get file modification time
                     file_mtime = os.path.getmtime(file_path)
 
+                    file_size_bytes = os.path.getsize(file_path)
+
                     # Check if already imported
                     existing = self.db.query(Comic).filter(
                         Comic.file_path == str(file_path)
@@ -79,11 +81,11 @@ class LibraryScanner:
                                 print(f"Force scanning: {file_path.name}")
                             else:
                                 print(f"Updating modified comic: {file_path.name}")
-                            comic = self._update_comic(existing, file_path, file_mtime)
+                            comic = self._update_comic(existing, file_path, file_mtime, file_size_bytes)
                             updated += 1
                     else:
                         # New comic - import it
-                        comic = self._import_comic(file_path, file_mtime)
+                        comic = self._import_comic(file_path, file_mtime, file_size_bytes)
                         imported += 1
 
                     if comic:
@@ -144,7 +146,7 @@ class LibraryScanner:
 
         return deleted
 
-    def _import_comic(self, file_path: Path, file_mtime: float) -> Optional[Comic]:
+    def _import_comic(self, file_path: Path, file_mtime: float, file_size_bytes: int) -> Optional[Comic]:
         """Process and import a new comic file"""
         metadata = self._extract_metadata(file_path)
 
@@ -165,6 +167,7 @@ class LibraryScanner:
             filename=file_path.name,
             file_path=str(file_path),
             file_modified_at=file_mtime,
+            file_size=file_size_bytes,
             page_count=metadata['page_count'],
 
             # Basic info
@@ -235,7 +238,7 @@ class LibraryScanner:
 
         return comic
 
-    def _update_comic(self, comic: Comic, file_path: Path, file_mtime: float) -> Optional[Comic]:
+    def _update_comic(self, comic: Comic, file_path: Path, file_mtime: float, file_size_bytes: int) -> Optional[Comic]:
         """Update an existing comic with new metadata"""
         metadata = self._extract_metadata(file_path)
 
@@ -253,6 +256,7 @@ class LibraryScanner:
         # Update ALL comic fields (set to None if not in metadata)
         comic.volume_id = volume.id
         comic.file_modified_at = file_mtime
+        comic.file_size = file_size_bytes
         comic.page_count = metadata['page_count']
 
         # Basic info

@@ -81,6 +81,7 @@ async def get_comic(comic_id: int, db: Session = Depends(get_db)):
         "id": comic.id,
         "filename": comic.filename,
         "file_path": comic.file_path,
+        "file_size": comic.file_size,
         "thumbnail_path": comic.thumbnail_path,
 
         # Series info

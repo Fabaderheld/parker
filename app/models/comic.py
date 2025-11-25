@@ -27,6 +27,7 @@ class Comic(Base):
     filename = Column(String, nullable=False)
     file_path = Column(String, unique=True, nullable=False)
     file_modified_at = Column(Float)
+    file_size = Column(Integer)
     thumbnail_path = Column(String, nullable=True)  # Path to cached thumbnail
     page_count = Column(Integer, default=0)
 
