@@ -8,6 +8,7 @@ class Settings(BaseSettings):
 
     # Storage paths
     cache_dir: Path = Path("./storage/cache")
+    cover_dir: Path = Path("./storage/cover")
     #thumbnail_size: tuple = (300, 450)
     thumbnail_size: tuple = (320, 455)
 

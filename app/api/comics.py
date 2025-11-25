@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
-from fastapi.responses import Response
+from fastapi.responses import Response, FileResponse
 from sqlalchemy.orm import Session
 from typing import List
+from pathlib import Path
 
 from app.database import get_db
 from app.models.comic import Comic, Volume
@@ -227,6 +228,10 @@ async def get_comic_thumbnail(
 
     if not comic:
         raise HTTPException(status_code=404, detail="Comic not found")
+
+    # Check if we have a cached path first
+    if comic.thumbnail_path and Path(comic.thumbnail_path).exists():
+        return FileResponse(comic.thumbnail_path, media_type="image/webp")
 
     image_service = ImageService()
     thumbnail_bytes = image_service.get_thumbnail(comic.file_path, width, height)
