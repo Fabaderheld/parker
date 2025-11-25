@@ -13,6 +13,7 @@ from app.services.metadata import parse_comicinfo
 from app.services.tags import TagService
 from app.services.credits import CreditService
 from app.services.reading_list import ReadingListService
+from app.services.collection import CollectionService
 
 class LibraryScanner:
     """Scans library directories and imports comics"""
@@ -24,6 +25,7 @@ class LibraryScanner:
         self.tag_service = TagService(db)
         self.credit_service = CreditService(db)
         self.reading_list_service = ReadingListService(db)
+        self.collection_service = CollectionService(db)
 
     def scan(self, force: bool = False) -> dict:
         """
@@ -98,6 +100,9 @@ class LibraryScanner:
 
         # Clean up empty reading lists
         self.reading_list_service.cleanup_empty_lists()
+
+        # Clean up empty collections
+        self.collection_service.cleanup_empty_collections()
 
         # Update library scan time
         self.library.last_scanned = datetime.utcnow()
@@ -211,6 +216,12 @@ class LibraryScanner:
             metadata.get('alternate_number')
         )
 
+        # Add to collections based on SeriesGroup
+        self.collection_service.update_comic_collections(
+            comic,
+            metadata.get('series_group')
+        )
+
         self.db.commit()
 
         print(f"Imported: {series_name} #{metadata.get('number', '?')} - {file_path.name}")
@@ -285,6 +296,12 @@ class LibraryScanner:
             comic,
             metadata.get('alternate_series'),
             metadata.get('alternate_number')
+        )
+
+        # Update collection membership
+        self.collection_service.update_comic_collections(
+            comic,
+            metadata.get('series_group')
         )
 
         # Full metadata

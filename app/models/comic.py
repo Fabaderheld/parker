@@ -70,6 +70,9 @@ class Comic(Base):
     volume = relationship("Volume", back_populates="comics")
 
     reading_list_items = relationship("ReadingListItem", back_populates="comic", cascade="all, delete-orphan")
+    collection_items = relationship("CollectionItem", back_populates="comic", cascade="all, delete-orphan")
+
+
 
 
     # Helper methods to get credits by role
