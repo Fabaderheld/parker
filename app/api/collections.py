@@ -45,14 +45,16 @@ async def get_collection(collection_id: int, db: Session = Depends(get_db)):
     for item in collection.items:
         comic = item.comic
         comics.append({
-            "comic_id": comic.id,
+            "id": comic.id,
             "series_id": comic.volume.series_id,
             "series": comic.volume.series.name,
             "volume": comic.volume.volume_number,
             "number": comic.number,
             "title": comic.title,
             "filename": comic.filename,
-            "year": comic.year
+            "year": comic.year,
+            "format": comic.format,
+            "thumbnail_path": f"/api/comics/{comic.id}/thumbnail"
         })
 
     return {
