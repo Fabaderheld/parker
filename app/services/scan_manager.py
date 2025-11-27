@@ -260,6 +260,12 @@ class ScanManager:
             job.status = JobStatus.COMPLETED
             job.result_summary = json.dumps(stats)
             job.completed_at = datetime.utcnow()
+
+            # --- Reset the Library Flag ---
+            library = db.query(Library).get(library_id)
+            if library:
+                library.is_scanning = False
+
             db.commit()
 
         except Exception as e:
