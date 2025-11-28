@@ -97,9 +97,31 @@
                 </div>
             </div>
 
-            <div x-show="comic?.summary">
+            <div x-show="comic?.summary" x-data="{ expanded: false, maxLength: 400 }">
                 <h3 class="text-lg font-bold text-gray-200 mb-2">Summary</h3>
-                <p class="text-gray-300 leading-relaxed whitespace-pre-line text-base" x-text="comic?.summary"></p>
+
+                <div class="relative">
+                    <p
+                        class="text-gray-300 leading-relaxed whitespace-pre-line text-base transition-all duration-300"
+                        :class="!expanded && comic?.summary?.length > maxLength ? 'max-h-32 overflow-hidden' : ''"
+                        x-text="expanded ? comic?.summary : (comic?.summary?.slice(0, maxLength) + (comic?.summary?.length > maxLength ? '...' : ''))"
+                    ></p>
+
+                    <div
+                        x-show="!expanded && comic?.summary?.length > maxLength"
+                        class="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-gray-900 to-transparent pointer-events-none"
+                    ></div>
+                </div>
+
+                <button
+                    x-show="comic?.summary?.length > maxLength"
+                    @click="expanded = !expanded"
+                    class="text-blue-400 hover:text-white text-sm font-medium mt-2 flex items-center gap-1 focus:outline-none"
+                >
+                    <span x-text="expanded ? 'Show Less' : 'Read More'"></span>
+                    <span x-text="expanded ? '↑' : '↓'"></span>
+                </button>
+
             </div>
 
             <div class="space-y-4">
