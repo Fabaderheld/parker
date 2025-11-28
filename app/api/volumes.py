@@ -117,8 +117,10 @@ async def get_volume_issues(
 
     total = query.count()
 
+    # Sort by Numeric Value first, then String Value for variants (10a, 10b)
     # Cast number to Float for correct numeric sorting
-    comics = query.order_by(func.cast(Comic.number, Float)) \
+    # Volume number is already int, so it sorts fine.
+    comics = query.order_by(func.cast(Comic.number, Float), Comic.number) \
         .offset(params.skip) \
         .limit(params.size) \
         .all()

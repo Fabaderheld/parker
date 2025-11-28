@@ -171,18 +171,13 @@ async def get_series_issues(
 
     total = query.count()
 
+    # Sort by Numeric Value first, then String Value for variants (10a, 10b)
     # Cast number to Float for correct numeric sorting (1, 2, 10 instead of 1, 10, 2)
     # Volume number is already int, so it sorts fine.
-    comics = query.order_by(Volume.volume_number, func.cast(Comic.number, Float)) \
+    comics = query.order_by(Volume.volume_number, func.cast(Comic.number, Float), Comic.number) \
         .offset(params.skip) \
         .limit(params.size) \
         .all()
-
-    # Sort: Volume Number -> Issue Number
-    #comics = query.order_by(Volume.volume_number, Comic.number) \
-    #    .offset(params.skip) \
-    #    .limit(params.size) \
-    #    .all()
 
     return {
         "total": total,
