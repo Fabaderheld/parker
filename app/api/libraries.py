@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from typing import List, Annotated, Optional
 from pydantic import BaseModel
+from sqlalchemy import func, case
 
 from app.core.comic_helpers import get_smart_cover
 from app.models.library import Library
@@ -44,12 +45,28 @@ async def get_library_series(
         db: SessionDep,
         current_user: CurrentUser
 ):
+    """
+    Get all Series within a specific Library (Paginated).
+    Sorts alphabetically ignoring 'The ' prefix.
+    """
+
     # 1. Filter by Library
     query = db.query(Series).filter(Series.library_id == library_id)
 
     # 2. Pagination
     total = query.count()
-    series_list = query.order_by(Series.name).offset(params.skip).limit(params.size).all()
+
+    # SMART SORTING: Ignore "The " prefix
+    # Logic: If name starts with "The ", use substring starting at char 5. Else use name.
+    # We use .ilike for case-insensitive matching
+    sort_key = case(
+        (Series.name.ilike("The %"), func.substr(Series.name, 5)),
+        else_=Series.name
+    )
+
+
+    #series_list = query.order_by(Series.name).offset(params.skip).limit(params.size).all()
+    series_list = query.order_by(sort_key).offset(params.skip).limit(params.size).all()
 
     # 3. Serialization & Thumbnails
     items = []

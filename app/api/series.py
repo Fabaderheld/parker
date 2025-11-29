@@ -244,7 +244,11 @@ async def list_series(
     elif sort_by == "updated":
         sort_col = Series.updated_at
     else:
-        sort_col = Series.name
+        # Smart Sort here too
+        sort_col = case(
+            (Series.name.ilike("The %"), func.substr(Series.name, 5)),
+            else_=Series.name
+        )
 
     if sort_desc:
         query = query.order_by(sort_col.desc())
