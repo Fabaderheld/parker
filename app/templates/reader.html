@@ -86,6 +86,67 @@
         -webkit-appearance: none; width: 16px; height: 16px;
         background: #3b82f6; border-radius: 50%; cursor: pointer;
     }
+
+
+    /* SCRUBBER STYLES */
+    .scrubber-wrapper {
+        position: absolute; bottom: 5.5rem; /* Sit above the control buttons */
+        left: 50%; transform: translateX(-50%);
+        width: 90%; max-width: 600px;
+        height: 20px; /* Hit area height */
+        display: flex; align-items: center;
+        z-index: 55;
+        opacity: 0; transition: opacity 0.3s;
+        pointer-events: none; /* Ignore clicks when hidden */
+    }
+
+    /* Show scrubber when hovering controls OR the scrubber itself */
+    .reader-container:hover .scrubber-wrapper,
+    .reader-controls:hover ~ .scrubber-wrapper {
+        opacity: 1; pointer-events: auto;
+    }
+
+    /* The Range Input Reset */
+    input[type=range].scrubber {
+        -webkit-appearance: none; width: 100%; background: transparent; cursor: pointer;
+    }
+    input[type=range].scrubber:focus { outline: none; }
+
+    /* The Track (Chrome/Safari) */
+    input[type=range].scrubber::-webkit-slider-runnable-track {
+        width: 100%; height: 4px; cursor: pointer;
+        background: rgba(255,255,255,0.3); border-radius: 2px;
+        transition: height 0.2s, background 0.2s;
+    }
+    .scrubber-wrapper:hover input[type=range].scrubber::-webkit-slider-runnable-track {
+        height: 6px; background: rgba(255,255,255,0.5);
+    }
+
+    /* The Thumb (Handle) */
+    input[type=range].scrubber::-webkit-slider-thumb {
+        height: 12px; width: 12px; border-radius: 50%;
+        background: #3b82f6; cursor: pointer;
+        -webkit-appearance: none;
+        margin-top: -4px; /* Center on track */
+        box-shadow: 0 0 10px rgba(0,0,0,0.5);
+        transition: transform 0.2s;
+    }
+    .scrubber-wrapper:hover input[type=range].scrubber::-webkit-slider-thumb {
+        transform: scale(1.5);
+    }
+
+    /* Tooltip for Page Number */
+    .scrubber-tooltip {
+        position: absolute; bottom: 25px;
+        background: #3b82f6; color: white;
+        padding: 2px 6px; border-radius: 4px;
+        font-size: 0.75rem; font-weight: bold;
+        pointer-events: none;
+        transform: translateX(-50%);
+        white-space: nowrap;
+    }
+
+
 </style>
 {% endblock %}
 
@@ -172,6 +233,29 @@
             :style="imageStyles"
             alt="Page"
         >
+
+        <div class="scrubber-wrapper" x-show="meta.page_count > 0">
+
+            <div class="scrubber-tooltip"
+                 x-show="isScrubbing || isHoveringScrubber"
+                 :style="`left: ${(scrubberValue / (meta.page_count - 1)) * 100}%`"
+                 x-text="parseInt(scrubberValue) + 1">
+            </div>
+
+            <input type="range"
+                   class="scrubber"
+                   min="0"
+                   :max="meta.page_count - 1"
+                   x-model="scrubberValue"
+                   x-on:mouseenter="isHoveringScrubber = true"
+                   x-on:mouseleave="isHoveringScrubber = false"
+                   x-on:mousedown="isScrubbing = true"
+                   x-on:touchstart="isScrubbing = true"
+                   x-on:change="finishScrub()"
+                   x-on:input="updateScrubberUI()"
+            >
+        </div>
+
 
         <div class="reader-controls">
             <button
@@ -260,6 +344,9 @@ function reader() {
         fitMode: 'contain',
         showGoto: false,
         gotoInputValue: 1,
+        scrubberValue: 0,
+        isScrubbing: false,  // True while dragging
+        isHoveringScrubber: false,
 
         // Filter State
         filters: {
@@ -271,7 +358,13 @@ function reader() {
 
         init() {
             this.loadInitData();
-            //this.setupKeyboard();
+
+            // Sync Slider -> Page (Watch for external page changes)
+            this.$watch('currentPage', (val) => {
+                if (!this.isScrubbing) {
+                    this.scrubberValue = val;
+                }
+            });
 
             // Restore filters from localStorage
             const savedFilters = localStorage.getItem('readerFilters');
@@ -504,6 +597,25 @@ function reader() {
             this.currentPage = page - 1;
             this.updateProgress();
             this.closeGoto();
+        },
+
+        updateScrubberUI() {
+            // This fires rapidly while dragging.
+            // We enable 'isScrubbing' here to pause the $watch listener above.
+            this.isScrubbing = true;
+        },
+
+        finishScrub() {
+            // Fires when user releases the mouse/touch
+            this.isScrubbing = false;
+
+            // Convert string input to int
+            const targetPage = parseInt(this.scrubberValue);
+
+            if (targetPage !== this.currentPage) {
+                this.currentPage = targetPage;
+                this.updateProgress();
+            }
         },
 
     }
