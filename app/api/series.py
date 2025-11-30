@@ -102,31 +102,6 @@ async def get_series_detail(series_id: int, db: SessionDep, current_user: Curren
     # Convert to list and sort alphabetically by Arc Name
     story_arcs_data = sorted(story_arcs_map.values(), key=lambda x: x['name'])
 
-
-
-    # Aggregate Story Arcs
-    # We group by the story_arc string and grab the ID of the first issue (min number)
-    # to use as the thumbnail for the Arc Card.
-    # Note: We filter out None and empty strings
-    arcs_query = db.query(
-        Comic.story_arc,
-        func.min(Comic.id).label('first_issue_id'),
-        func.count(Comic.id).label('count')
-    ).filter(
-        Comic.volume_id.in_(volume_ids),
-        Comic.story_arc != None,
-        Comic.story_arc != ""
-    ).group_by(Comic.story_arc).all()
-
-    story_arcs_data = [
-        {
-            "name": arc[0],
-            "first_issue_id": arc[1],
-            "count": arc[2]
-        }
-        for arc in arcs_query
-    ]
-
     # 3. Related Content & Metadata (Collections, Reading Lists, Credits)
     related_collections = db.query(Collection).join(CollectionItem).join(Comic).filter(
         Comic.volume_id.in_(volume_ids)).distinct().all()
