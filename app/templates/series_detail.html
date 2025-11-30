@@ -230,29 +230,10 @@
                 <div x-show="activeTab === 'arcs'">
                     <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
                         <template x-for="arc in series?.story_arcs" :key="arc.name">
-                            <div class="group relative bg-gray-700/50 rounded-lg overflow-hidden border border-gray-700 hover:border-blue-500 transition-colors cursor-pointer shadow-lg">
-                                <a :href="`/reader/${arc.first_issue_id}`">TODO</a>
-                                <div class="aspect-[2/3] w-full relative overflow-hidden">
-                                    <img :src="`/api/comics/${arc.first_issue_id}/thumbnail?width=300&height=450`"
-                                         class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105 group-hover:opacity-40">
 
-                                    <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                         <a :href="`/reader/${arc.first_issue_id}`"
-                                            @click.stop
-                                            class="bg-blue-600 hover:bg-blue-500 text-white rounded-full p-4 shadow-xl transform hover:scale-110 transition-transform"
-                                            title="Start Reading Arc">
-                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" viewBox="0 0 20 20" fill="currentColor">
-                                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" />
-                                            </svg>
-                                         </a>
-                                    </div>
-                                </div>
+                            {% include "partials/arc_card.html" %}
 
-                                <div class="p-4">
-                                    <h4 class="font-bold text-white truncate" x-text="arc.name"></h4>
-                                    <p class="text-xs text-gray-400 mt-1" x-text="`${arc.count} Issues`"></p>
-                                </div>
-                            </div>
+
                         </template>
                     </div>
                 </div>
