@@ -108,6 +108,9 @@ class LibraryScanner:
                                 self.logger.info(f"Updating modified: {file_path.name}")
 
                             comic = self._update_comic(existing, file_path, file_mtime, file_size_bytes)
+
+                            # TODO: if comic comes back as None, do something and dont increment
+
                             updated += 1
                             pending_changes += 1
                     else:
