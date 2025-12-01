@@ -1,3 +1,4 @@
+import logging
 import sqlite3
 import tarfile
 import os
@@ -8,6 +9,9 @@ from app.config import settings
 
 class BackupService:
     def create_backup(self) -> dict:
+
+        logger = logging.getLogger(__name__)
+
         """
         Perform a hot backup of the SQLite database and compress it.
         """
@@ -16,6 +20,7 @@ class BackupService:
         db_path = settings.database_url.replace("sqlite:///", "")
 
         if not Path(db_path).exists():
+            logger.error(f"Database path does not exist: {db_path}")
             raise FileNotFoundError(f"Database not found at {db_path}")
 
         backup_dir = settings.backup_dir
