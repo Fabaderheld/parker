@@ -1,5 +1,5 @@
 import time
-
+import logging
 import threading
 from pathlib import Path
 from watchdog.observers import Observer
@@ -23,6 +23,8 @@ class LibraryEventHandler(FileSystemEventHandler):
         self._timer = None
         self._lock = threading.Lock()
         self._stopped = False
+
+        self.logger = logging.getLogger(__name__)
 
         # Files to completely ignore
         self.ignored_extensions = {'.webp', '.part', '.tmp', '.crdownload'}
@@ -48,6 +50,7 @@ class LibraryEventHandler(FileSystemEventHandler):
             self._timer = None
 
         print(f"Watcher: Batch window ended for Library {self.library_id}. Queuing scan...")
+        self.logger.info(f"Watcher: Batch window ended for Library {self.library_id}. Queuing scan...")
         scan_manager.add_task(self.library_id, force=False)
 
     def on_any_event(self, event):
@@ -78,6 +81,7 @@ class LibraryEventHandler(FileSystemEventHandler):
         with self._lock:
             if not self._stopped and not self._timer:
                 print(f"Watcher: Change detected in Library {self.library_id} ({event.event_type}: {path.name}). Starting {self.batch_window_seconds}s batch window.")
+                self.logger.info(f"Watcher: Change detected in Library {self.library_id} ({event.event_type}: {path.name}). Starting {self.batch_window_seconds}s batch window.")
                 self._timer = threading.Timer(self.batch_window_seconds, self._trigger_scan)
                 self._timer.start()
 
@@ -95,6 +99,7 @@ class LibraryWatcher:
         if self._initialized:
             return
 
+        self.logger = logging.getLogger(__name__)
         self.observer = Observer()
         self.watches = {}  # Map library_id -> watch_object
         self.is_running = False
@@ -107,6 +112,7 @@ class LibraryWatcher:
             self.observer.start()
             self.is_running = True
             print("Library Watcher Started")
+            self.logger.info("Library Watcher Started")
 
     def stop(self):
         """Stop the observer"""
@@ -114,6 +120,7 @@ class LibraryWatcher:
             self.observer.stop()
             self.observer.join()
             self.is_running = False
+            self.logger.info("Library Watcher Stopped")
 
     def refresh_watches(self):
         """Sync active watches with the Database"""
@@ -129,6 +136,7 @@ class LibraryWatcher:
                 if lib.id not in self.watches:
                     try:
                         print(f"Starting watch for: {lib.path}")
+                        self.logger.info(f"Starting watch for: {lib.path}")
                         handler = LibraryEventHandler(lib.id, settings.batch_window_seconds)
                         watch = self.observer.schedule(handler, lib.path, recursive=True)
 
@@ -136,11 +144,13 @@ class LibraryWatcher:
                         self.watches[lib.id] = (watch, handler)
                     except Exception as e:
                         print(f"Failed to watch {lib.path}: {e}")
+                        self.logger.error(f"Failed to watch {lib.path}: {e}")
 
             # 3. Remove old watches (if disabled in DB)
             for lib_id in current_ids:
                 if lib_id not in active_ids:
                     print(f"Stopping watch for Library {lib_id}")
+                    self.logger.info(f"Stopping watch for Library {lib_id}")
                     watch, handler = self.watches[lib_id]
 
                     # Cancel any pending timer

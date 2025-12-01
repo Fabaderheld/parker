@@ -2,6 +2,7 @@ import threading
 import time
 import json
 import traceback
+import logging
 from datetime import datetime
 from sqlalchemy import asc
 
@@ -17,6 +18,7 @@ from app.services.thumbnailer import ThumbnailService
 class ScanManager:
     _instance = None
 
+
     def __new__(cls):
         if cls._instance is None:
             cls._instance = super(ScanManager, cls).__new__(cls)
@@ -26,6 +28,8 @@ class ScanManager:
     def __init__(self):
         if self._initialized:
             return
+
+        self.logger = logging.getLogger(__name__)
 
         self._stop_event = threading.Event()
 
@@ -45,6 +49,8 @@ class ScanManager:
             stuck_jobs = db.query(ScanJob).filter(ScanJob.status == JobStatus.RUNNING).all()
             if stuck_jobs:
                 print(f"Recovering {len(stuck_jobs)} interrupted scan jobs...")
+                self.logger.info(f"Recovering {len(stuck_jobs)} interrupted scan jobs...")
+
                 for job in stuck_jobs:
                     job.status = JobStatus.FAILED
                     job.error_message = "Scan interrupted by server restart"
@@ -118,6 +124,7 @@ class ScanManager:
     def _process_queue(self):
         """Poller loop: Check DB for pending jobs"""
         print("Database Job Worker Started")
+        self.logger.info("Database Job Worker Started")
 
         while not self._stop_event.is_set():
             db = SessionLocal()
@@ -171,6 +178,8 @@ class ScanManager:
 
             except Exception as e:
                 print(f"Worker polling error: {e}")
+                self.logger.error(f"Worker polling error: {e}")
+
                 if db:
                     db.close()
                 time.sleep(5)
@@ -184,9 +193,11 @@ class ScanManager:
 
             if not library or not job:
                 print(f"Critical: Job {job_id} or Library missing.")
+                self.logger.error(f"Critical: Job {job_id} or Library missing.")
                 return
 
             print(f"Starting SCAN job {job_id} for {library.name}")
+            self.logger.info(f"Starting SCAN job {job_id} for {library.name}")
 
             # --- RUN SCANNER ---
             scanner = LibraryScanner(library, db)
@@ -212,6 +223,8 @@ class ScanManager:
 
             # Create Thumbnail Job
             print(f"Scan complete. Queuing thumbnail generation for Library {library_id}")
+            self.logger.info(f"Scan complete. Queuing thumbnail generation for Library {library_id}")
+
             thumb_job = ScanJob(
                 library_id=library_id,
                 job_type=JobType.THUMBNAIL,
@@ -223,6 +236,8 @@ class ScanManager:
 
         except Exception as e:
             print(f"Scan Job {job_id} Failed: {e}")
+            self.logger.error(f"Scan Job {job_id} Failed: {e}")
+
             traceback.print_exc()
             db.rollback()
 
@@ -253,6 +268,7 @@ class ScanManager:
                 return
 
             print(f"Starting THUMBNAIL job {job_id} for Library {library_id}")
+            self.logger.info(f"Starting THUMBNAIL job {job_id} for Library {library_id}")
 
             # --- RUN THUMBNAILER ---
             service = ThumbnailService(db, library_id)
@@ -272,6 +288,7 @@ class ScanManager:
 
         except Exception as e:
             print(f"Thumbnail Job {job_id} Failed: {e}")
+            self.logger.error(f"Thumbnail Job {job_id} Failed: {e}")
             traceback.print_exc()
             db.rollback()
 

@@ -5,6 +5,7 @@ from datetime import datetime
 import json
 import os
 import time
+import logging
 
 from app.config import settings
 from app.models.library import Library
@@ -32,6 +33,8 @@ class LibraryScanner:
         self.collection_service = CollectionService(db)
         self.image_service = ImageService()
 
+        self.logger = logging.getLogger(__name__)
+
         # Local caches to reduce DB reads during the scan loop
         self.series_cache: Dict[str, Series] = {}
         self.volume_cache: Dict[str, Volume] = {}
@@ -43,6 +46,7 @@ class LibraryScanner:
         library_path = Path(self.library.path)
 
         if not library_path.exists():
+            self.logger.error(f"Library path {self.library.path} does not exist")
             return {"error": f"Library path does not exist: {self.library.path}"}
 
         found_comics = []
@@ -56,6 +60,7 @@ class LibraryScanner:
         pending_changes = 0
 
         print(f"Scanning {library_path}... (force={force})")
+        self.logger.info(f"Scanning {library_path}... (force={force})")
 
         # Start timing
         start_time = time.time()
@@ -63,6 +68,7 @@ class LibraryScanner:
         # 1. OPTIMIZATION: Pre-fetch all existing comics for this library.
         # This avoids executing a SELECT query for every single file in the loop.
         print("Pre-fetching existing file list...")
+        self.logger.info("Pre-fetching existing file list...")
         db_comics = self.db.query(Comic).join(Volume).join(Series).filter(
             Series.library_id == self.library.id
         ).all()
@@ -96,8 +102,10 @@ class LibraryScanner:
                             # Update existing
                             if force:
                                 print(f"Force scanning: {file_path.name}")
+                                self.logger.info(f"Force scanning: {file_path.name}")
                             else:
                                 print(f"Updating modified: {file_path.name}")
+                                self.logger.info(f"Updating modified: {file_path.name}")
 
                             comic = self._update_comic(existing, file_path, file_mtime, file_size_bytes)
                             updated += 1
@@ -124,6 +132,7 @@ class LibraryScanner:
                     # Only hit the disk once every BATCH_SIZE items
                     if pending_changes >= BATCH_SIZE:
                         print(f"Committing batch of {pending_changes} items...")
+                        self.logger.info(f"Committing batch of {pending_changes} items...")
                         self.db.commit()
                         pending_changes = 0
 
@@ -131,6 +140,7 @@ class LibraryScanner:
                     # If an error occurs, we log it but try not to kill the whole scan
                     errors.append({"file": str(file_path), "error": str(e)})
                     print(f"Error processing {file_path}: {e}")
+                    self.logger.error(f"Error processing {file_path}: {e}")
                     # In case of database error, we might need to rollback the current transaction
                     # to proceed, but that would lose the pending batch.
                     # Advanced logic would use savepoints, but simple try/catch per file is usually enough
@@ -139,6 +149,7 @@ class LibraryScanner:
         # Commit any remaining items
         if pending_changes > 0:
             print(f"Committing final batch of {pending_changes} items...")
+            self.logger.info(f"Committing final batch of {pending_changes} items...")
             self.db.commit()
 
         # Find and remove comics whose files no longer exist
@@ -178,6 +189,7 @@ class LibraryScanner:
         for file_path, comic in existing_map.items():
             if file_path not in scanned_paths_on_disk:
                 print(f"Removing deleted comic: {comic.filename}")
+                self.logger.info(f"Removing deleted comic: {comic.filename}")
                 self.db.delete(comic)
                 deleted += 1
 
@@ -274,12 +286,9 @@ class LibraryScanner:
             metadata.get('series_group')
         )
 
-        # Generate thumbnail
-        # We check if we need to flush again inside here, but usually flush() above is enough
-        #if not comic.thumbnail_path or not Path(comic.thumbnail_path).exists():
-            #self._generate_thumbnail(comic)
-
         print(f"Imported: {series_name} #{metadata.get('number', '?')} - {file_path.name}")
+        self.logger.info(f"Imported: {series_name} #{metadata.get('number', '?')} - {file_path.name}")
+
         return comic
 
     def _update_comic(self, comic: Comic, file_path: Path, file_mtime: float, file_size_bytes: int) -> Optional[Comic]:
@@ -352,10 +361,6 @@ class LibraryScanner:
 
         # NO COMMIT HERE - handled by batch loop
 
-        # Generate thumbnail if missing
-        #if not comic.thumbnail_path or not Path(comic.thumbnail_path).exists():
-            #self._generate_thumbnail(comic)
-
         return comic
 
     def _extract_metadata(self, file_path: Path) -> Optional[Dict]:
@@ -366,6 +371,7 @@ class LibraryScanner:
 
                 if not pages:
                     print(f"Warning: No valid image pages found in {file_path.name}")
+                    self.logger.warning(f"Warning: No valid image pages found in {file_path.name}")
                     return None
 
                 comicinfo_xml = archive.get_comicinfo()
@@ -379,6 +385,7 @@ class LibraryScanner:
                 return metadata
         except Exception as e:
             print(f"Error extracting metadata from {file_path}: {e}")
+            self.logger.error(f"Error extracting metadata from {file_path}: {e}")
             return None
 
     def _get_or_create_series(self, name: str) -> Series:
@@ -400,7 +407,7 @@ class LibraryScanner:
             self.db.add(series)
             self.db.flush()
 
-            # 4. Add to cache
+        # 4. Add to cache
         self.series_cache[name] = series
         return series
 
