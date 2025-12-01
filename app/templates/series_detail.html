@@ -84,7 +84,11 @@
 
                         <p class="text-gray-400">
                             <span class="text-gray-500">Started:</span>
-                            <span x-text="series?.start_year || 'Unknown'"></span>
+
+                            {% with year_ref="series?.start_year" %}
+                                {% include "partials/year_link.html" %}
+                            {% endwith %}
+
                         </p>
 
                         <div class="flex items-center space-x-4 text-sm text-gray-500 mt-4">

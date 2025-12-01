@@ -1,0 +1,13 @@
+{% if year_ref %}
+<a
+    x-show="{{ year_ref }}"
+    :href="`/search?field=year&value=${encodeURIComponent({{ year_ref }})}&operator=equal`"
+    class="inline-flex items-center gap-2 hover:text-blue-400 transition-colors group"
+    title="Browse Year"
+>
+
+    <span x-text="{{ year_ref }}" class="font-medium"></span>
+</a>
+{% else %}
+<span class="font-medium">Unknown</span>
+{% endif %}
