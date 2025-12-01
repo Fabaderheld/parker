@@ -11,21 +11,21 @@
 
     <div class="flex space-x-2 border-b border-gray-700 overflow-x-auto">
         <button
-            @click="setFilter('in_progress')"
+            x-on:click="setFilter('in_progress')"
             :class="filter === 'in_progress' ? 'border-blue-500 text-blue-400' : 'border-transparent text-gray-400 hover:text-gray-300'"
             class="px-4 py-2 border-b-2 font-medium transition-colors whitespace-nowrap"
         >
             In Progress
         </button>
         <button
-            @click="setFilter('recent')"
+            x-on:click="setFilter('recent')"
             :class="filter === 'recent' ? 'border-blue-500 text-blue-400' : 'border-transparent text-gray-400 hover:text-gray-300'"
             class="px-4 py-2 border-b-2 font-medium transition-colors whitespace-nowrap"
         >
             Recently Read
         </button>
         <button
-            @click="setFilter('completed')"
+            x-on:click="setFilter('completed')"
             :class="filter === 'completed' ? 'border-blue-500 text-blue-400' : 'border-transparent text-gray-400 hover:text-gray-300'"
             class="px-4 py-2 border-b-2 font-medium transition-colors whitespace-nowrap"
         >
