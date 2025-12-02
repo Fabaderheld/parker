@@ -1,12 +1,9 @@
 from fastapi import APIRouter, Request, HTTPException
 from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
 
 from app.core.templates import templates
 
 router = APIRouter()
-
-
 
 
 # Frontend routes
@@ -91,7 +88,9 @@ async def comic_detail(request: Request, comic_id: int):
 
 @router.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request):
-    return templates.TemplateResponse("login.html", {"request": request})
+    return templates.TemplateResponse("login_full.html", {  # Point to new template
+        "request": request,
+    })
 
 @router.get("/pull-lists", response_class=HTMLResponse)
 async def pull_lists_index(request: Request):

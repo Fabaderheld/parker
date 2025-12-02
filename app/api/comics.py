@@ -3,8 +3,7 @@ from fastapi.responses import Response, FileResponse
 from typing import List, Annotated
 from pathlib import Path
 import re
-
-
+from sqlalchemy.sql.expression import func
 
 from app.api.deps import SessionDep, CurrentUser
 from app.models.comic import Comic, Volume
@@ -182,7 +181,7 @@ async def get_comic_pages(comic_id: int, db: SessionDep, current_user: CurrentUs
         ]
     }
 
-
+# TODO: Moved to api/reader.py, remove
 @router.get("/{comic_id}/page/{page_index}")
 def get_comic_page(
         comic_id: int,
@@ -299,6 +298,7 @@ async def get_comic_thumbnail(
     return FileResponse(standard_path, media_type="image/webp")
 
 
+# TODO: Moved to api/reader.py, remove
 @router.get("/{comic_id}/read-init")
 async def get_comic_reader_init(comic_id: int, db: SessionDep, current_user: CurrentUser):
     """
@@ -339,3 +339,18 @@ async def get_comic_reader_init(comic_id: int, db: SessionDep, current_user: Cur
         "next_comic_id": next_id,
         "prev_comic_id": prev_id
     }
+
+
+@router.get("/random/backgrounds")
+async def get_random_backgrounds(
+        db: SessionDep,
+        limit: int = 20
+):
+    """
+    Get a list of random comic thumbnail URLs for the login background.
+    """
+    # SQLite uses 'RANDOM()', Postgres uses 'RANDOM()', MySQL 'RAND()'
+    # SQLAlchemy 'func.random()' usually abstracts this well enough for SQLite.
+    comics = db.query(Comic.id).filter(Comic.thumbnail_path != None).order_by(func.random()).limit(limit).all()
+
+    return [f"api/comics/{c.id}/thumbnail" for c in comics]

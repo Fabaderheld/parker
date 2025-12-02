@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Parker</title>
+
+    <script>
+        // Global Configuration
+        window.APP_CONFIG = {
+            baseUrl: "{{ base_url }}" || "",
+        };
+
+        // JS Helper Function
+        window.url = function(path) {
+            const base = window.APP_CONFIG.baseUrl;
+            const cleanPath = path.startsWith('/') ? path.slice(1) : path;
+            return base ? `${base}/${cleanPath}` : `/${cleanPath}`;
+        };
+    </script>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+    <style>
+        /* Custom Fade Animation for the Backgrounds */
+        .fade-enter-active, .fade-leave-active {
+            transition: opacity 2s ease-in-out;
+        }
+        .fade-enter-from, .fade-leave-to {
+            opacity: 0;
+        }
+        .fade-enter-to, .fade-leave-from {
+            opacity: 1;
+        }
+
+        [x-cloak] { display: none !important; }
+    </style>
+</head>
+<body class="bg-gray-900 text-white h-screen w-screen overflow-hidden" x-data="loginCycler()">
+
+    <div class="absolute inset-0 z-0">
+        <div class="absolute inset-0 bg-cover bg-center"
+             :style="`background-image: url('${currentImage}')`">
+        </div>
+
+        <div class="absolute inset-0 bg-cover bg-center transition-opacity duration-1000"
+             :class="isTransitioning ? 'opacity-100' : 'opacity-0'"
+             :style="`background-image: url('${nextImage}')`">
+        </div>
+    </div>
+
+    <div class="absolute inset-0 z-10 bg-gradient-to-t from-gray-900 via-gray-900/80 to-transparent opacity-90"></div>
+    <div class="absolute inset-0 z-10 bg-gradient-to-r from-gray-900/90 via-transparent to-gray-900/90 mix-blend-multiply"></div>
+
+    <div class="relative z-20 h-full flex flex-col items-center justify-center px-4">
+
+        <div class="w-full max-w-md space-y-8 p-10 bg-black/40 backdrop-blur-md rounded-2xl border border-white/10 shadow-2xl">
+
+            <div class="text-center">
+                <h1 class="text-4xl font-bold tracking-tight text-white mb-2">Parker</h1>
+                <p class="text-gray-400 text-sm">Sign in to your comic server</p>
+            </div>
+
+            <form class="mt-8 space-y-6" @submit.prevent="login">
+                <div class="space-y-4">
+                    <div>
+                        <label for="username" class="sr-only">Username</label>
+                        <input id="username" name="username" type="text" x-model="username" required
+                               class="relative block w-full rounded-lg border-0 bg-gray-800/50 text-white ring-1 ring-inset ring-gray-600 placeholder:text-gray-400 focus:z-10 focus:ring-2 focus:ring-inset focus:ring-blue-500 sm:text-sm sm:leading-6 px-4 py-3 shadow-inner"
+                               placeholder="Username">
+                    </div>
+                    <div>
+                        <label for="password" class="sr-only">Password</label>
+                        <input id="password" name="password" type="password" x-model="password" required
+                               class="relative block w-full rounded-lg border-0 bg-gray-800/50 text-white ring-1 ring-inset ring-gray-600 placeholder:text-gray-400 focus:z-10 focus:ring-2 focus:ring-inset focus:ring-blue-500 sm:text-sm sm:leading-6 px-4 py-3 shadow-inner"
+                               placeholder="Password">
+                    </div>
+                </div>
+
+                <div x-show="error" x-transition class="text-red-400 text-sm text-center font-medium bg-red-900/20 py-2 rounded border border-red-900/50">
+                    <span x-text="error"></span>
+                </div>
+
+                <div>
+                    <button type="submit"
+                            :disabled="loading"
+                            class="group relative flex w-full justify-center rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 transition-all shadow-lg hover:shadow-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed">
+                        <span x-show="!loading">Sign in</span>
+                        <span x-show="loading" class="animate-pulse">Signing in...</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <div class="absolute bottom-6 text-gray-500 text-xs">
+            Powered by Parker v1.0
+        </div>
+
+    </div>
+
+<script>
+function loginCycler() {
+    return {
+        // Auth State
+        username: '',
+        password: '',
+        error: null,
+        loading: false,
+
+        // Background State
+        images: [],
+        currentIndex: 0,
+        currentImage: '', // The visible bottom layer
+        nextImage: '',    // The fading top layer
+        isTransitioning: false,
+
+        init() {
+            this.fetchBackgrounds();
+        },
+
+        async fetchBackgrounds() {
+            try {
+                // Fetch random covers from our new endpoint
+                const res = await fetch(window.url('/api/comics/random/backgrounds'));
+                if (res.ok) {
+                    this.images = await res.json();
+                    if (this.images.length > 0) {
+                        this.currentImage = this.images[0];
+                        // Start cycling if we have more than 1 image
+                        if (this.images.length > 1) {
+                            this.startCycling();
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error("Failed to load backgrounds", e);
+            }
+        },
+
+        startCycling() {
+            setInterval(() => {
+                this.cycleImage();
+            }, 8000); // Change every 8 seconds
+        },
+
+        cycleImage() {
+            // 1. Prepare the Next Image (on the invisible top layer)
+            const nextIndex = (this.currentIndex + 1) % this.images.length;
+            this.nextImage = this.images[nextIndex];
+
+            // 2. Trigger Fade In
+            // We use a small timeout to ensure the DOM has updated the 'nextImage' src before fading
+            setTimeout(() => {
+                this.isTransitioning = true;
+            }, 50);
+
+            // 3. Cleanup after Fade completes (e.g., 1000ms later)
+            setTimeout(() => {
+                // Swap: The top image becomes the bottom image
+                this.currentImage = this.nextImage;
+
+                // Hide the top layer (instantly, but it's invisible now anyway since bottom matches)
+                this.isTransitioning = false;
+
+                this.currentIndex = nextIndex;
+            }, 1050); // Matches CSS duration + buffer
+        },
+
+        async login() {
+            this.loading = true;
+            this.error = null;
+
+            const formData = new FormData();
+            formData.append('username', this.username);
+            formData.append('password', this.password);
+
+            try {
+
+                const res = await fetch(window.url('/api/auth/token'), {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await res.json();
+
+                if (!res.ok) {
+                    throw new Error(data.detail || "Login failed");
+                }
+
+                // Store Token
+                localStorage.setItem('token', data.access_token);
+
+                // Redirect
+                window.location.href = window.url('/');
+
+            } catch (e) {
+                this.error = e.message;
+                this.loading = false;
+            }
+        }
+    }
+}
+</script>
+</body>
+</html>
