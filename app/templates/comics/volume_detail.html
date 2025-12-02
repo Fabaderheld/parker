@@ -346,7 +346,8 @@ function volumeDetail() {
         switchTab(tabName) {
             this.activeTab = tabName;
 
-            if (tabName === 'details') return;
+            // If details or arcs, we don't need to fetch issues
+            if (['details', 'arcs'].includes(tabName)) return;
 
             // Reset Pagination
             this.currentPage = 1;
