@@ -50,7 +50,8 @@
     <div x-show="!loading" class="space-y-2" id="sortable-list">
         <template x-for="(item, index) in list?.items" :key="item.item_id">
 
-            <div :data-id="item.id" class="bg-gray-800/50 border border-gray-700 rounded p-3 flex items-center gap-4 hover:bg-gray-800 transition-colors group">
+            <div class="bg-gray-800/50 border border-gray-700 rounded p-3 flex items-center gap-4 hover:bg-gray-800 transition-colors group"
+                 :data-id="item.id">
 
                 <div class="drag-handle text-gray-500 hover:text-white cursor-grab px-2 py-4">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -78,7 +79,7 @@
                         </svg>
                     </a>
 
-                    <button @click="removeItem(item.id)" class="text-gray-500 hover:text-red-400 transition-colors" title="Remove">
+                    <button @click="askRemoveItem(item.id)" class="text-gray-500 hover:text-red-400 transition-colors" title="Remove">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                             <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
                         </svg>
@@ -87,85 +88,89 @@
             </div>
         </template>
 
+        <div x-show="list?.items?.length === 0" class="text-center py-12 text-gray-500 bg-gray-800 rounded border border-gray-700 border-dashed">
+            List is empty. Go browse and add some comics!
+        </div>
     </div>
 
-    <div x-show="list?.items?.length === 0" class="text-center py-12 text-gray-500 bg-gray-800 rounded border border-gray-700 border-dashed">
-        List is empty. Go browse and add some comics!
+    <div x-show="showEditModal" style="display: none;" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
+         x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-100" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
+         @click.self="showEditModal = false">
+         <div class="bg-gray-800 border border-gray-700 p-6 rounded-lg shadow-2xl w-full max-w-md">
+            <h3 class="text-white font-bold text-xl mb-6">Edit List</h3>
+            <div class="space-y-4">
+                <input x-ref="editNameInput" type="text" x-model="editName" class="w-full bg-gray-900 border border-gray-600 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-blue-500" @keydown.enter="submitEdit()">
+                <input type="text" x-model="editDesc" class="w-full bg-gray-900 border border-gray-600 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-blue-500" @keydown.enter="submitEdit()">
+                <div class="flex gap-3 mt-6">
+                    <button @click="showEditModal = false" class="flex-1 px-4 py-3 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg">Cancel</button>
+                    <button @click="submitEdit()" :disabled="!editName" class="flex-1 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white px-4 py-3 rounded-lg font-bold">Save</button>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <div x-show="showEditModal"
+    <div x-show="showDeleteModal"
          style="display: none;"
-         class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
+         class="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm"
          x-transition:enter="transition ease-out duration-200"
          x-transition:enter-start="opacity-0"
          x-transition:enter-end="opacity-100"
          x-transition:leave="transition ease-in duration-100"
          x-transition:leave-start="opacity-100"
          x-transition:leave-end="opacity-0"
-         @click.self="showEditModal = false">
+         @click.self="showDeleteModal = false">
 
-        <div class="bg-gray-800 border border-gray-700 p-6 rounded-lg shadow-2xl w-full max-w-md transform transition-all"
+        <div class="bg-gray-800 border border-gray-700 p-6 rounded-lg shadow-2xl w-full max-w-sm transform transition-all"
              x-transition:enter="scale-95"
              x-transition:enter-end="scale-100">
 
-            <div class="flex justify-between items-center mb-6">
-                <h3 class="text-white font-bold text-xl">Edit List</h3>
-                <button @click="showEditModal = false" class="text-gray-400 hover:text-white transition-colors">✕</button>
-            </div>
-
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-xs text-gray-400 uppercase font-bold mb-2">List Name</label>
-                    <input
-                        x-ref="editNameInput"
-                        type="text"
-                        x-model="editName"
-                        class="w-full bg-gray-900 border border-gray-600 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
-                        @keydown.enter="submitEdit()"
-                        @keydown.escape="showEditModal = false"
-                    >
+            <div class="text-center">
+                <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-900/30 mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
                 </div>
 
-                <div>
-                    <label class="block text-xs text-gray-400 uppercase font-bold mb-2">Description</label>
-                     <input
-                        type="text"
-                        x-model="editDesc"
-                        class="w-full bg-gray-900 border border-gray-600 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
-                        @keydown.enter="submitEdit()"
-                    >
-                </div>
+                <h3 class="text-lg font-bold text-white mb-2">Remove Item?</h3>
+                <p class="text-sm text-gray-400 mb-6">
+                    Are you sure you want to remove this comic from the list?
+                </p>
 
-                <div class="flex gap-3 mt-6">
-                    <button @click="showEditModal = false" class="flex-1 px-4 py-3 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors font-medium">
+                <div class="flex gap-3">
+                    <button
+                        @click="showDeleteModal = false"
+                        class="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors">
                         Cancel
                     </button>
                     <button
-                        @click="submitEdit()"
-                        :disabled="!editName"
-                        class="flex-1 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-3 rounded-lg font-bold transition-colors shadow-lg">
-                        Save Changes
+                        @click="confirmRemoveItem()"
+                        class="flex-1 px-4 py-2 bg-red-600 hover:bg-red-500 text-white font-bold rounded-lg transition-colors">
+                        Remove
                     </button>
                 </div>
             </div>
         </div>
     </div>
+
 </div>
 
 <script>
 function pullListDetail() {
-
     return {
-
         listId: {{ list_id }},
         list: null,
         loading: true,
         sortable: null,
 
-        // Modal State
+        // Edit Modal State
         showEditModal: false,
         editName: '',
         editDesc: '',
+
+        // Delete Modal State
+        showDeleteModal: false,
+        itemToDelete: null,
 
         async init() {
             await this.loadList();
@@ -191,9 +196,7 @@ function pullListDetail() {
                 animation: 150,
                 ghostClass: 'sortable-ghost',
                 dragClass: 'sortable-drag',
-                onEnd: (evt) => {
-                    this.saveOrder();
-                }
+                onEnd: (evt) => { this.saveOrder(); }
             });
         },
 
@@ -219,16 +222,25 @@ function pullListDetail() {
 
                 // Reconstruct the array in the new order
                 this.list.items = newOrderIds.map(id => itemMap.get(id)).filter(i => i);
-
-            } catch(e) { console.error("Reorder failed", e); }
+            } catch(e) { console.error("Reorder failed", e); this.loadList(); }
         },
 
-        async removeItem(comicId) {
-            if(!confirm("Remove from list?")) return;
+        // Trigger the Modal
+        askRemoveItem(comicId) {
+            this.itemToDelete = comicId;
+            this.showDeleteModal = true;
+        },
+
+        // Actually perform delete
+        async confirmRemoveItem() {
+            if (!this.itemToDelete) return;
+
             try {
-                const res = await fetch(`/api/pull-lists/${this.listId}/items/${comicId}`, { method: 'DELETE' });
+                const res = await fetch(`/api/pull-lists/${this.listId}/items/${this.itemToDelete}`, { method: 'DELETE' });
                 if(res.ok) {
-                    this.list.items = this.list.items.filter(i => i.id !== comicId);
+                    this.list.items = this.list.items.filter(i => i.id !== this.itemToDelete);
+                    this.showDeleteModal = false;
+                    this.itemToDelete = null;
                 }
             } catch(e) { console.error(e); }
         },
@@ -238,12 +250,7 @@ function pullListDetail() {
             this.editName = this.list.name;
             this.editDesc = this.list.description || '';
             this.showEditModal = true;
-
-            // Auto focus
-            this.$nextTick(() => {
-                this.$refs.editNameInput.focus();
-                this.$refs.editNameInput.select();
-            });
+            this.$nextTick(() => { this.$refs.editNameInput.focus(); this.$refs.editNameInput.select(); });
         },
 
         async submitEdit() {
@@ -261,6 +268,7 @@ function pullListDetail() {
 
                 if(res.ok) {
                     const updated = await res.json();
+
                     // Update local state
                     this.list.name = updated.name;
                     this.list.description = updated.description;
