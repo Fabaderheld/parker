@@ -21,9 +21,6 @@
                     <p class="text-gray-400 mt-2 text-sm max-w-xl">
                         Scans the database for metadata (Characters, Writers, Locations) and containers (Collections) that are no longer linked to any comics.
                     </p>
-                    <p class="text-gray-500 text-xs mt-2 italic">
-                        Recommended after deleting a large library.
-                    </p>
                 </div>
                 <button
                     @click="runTask('cleanup')"
@@ -31,12 +28,12 @@
                     :disabled="loading"
                     :class="loading ? 'opacity-50 cursor-not-allowed' : ''"
                 >
-                    <span x-show="loading" class="animate-spin">↻</span>
-                    <span x-show="!loading">Run Task</span>
+                    <span x-show="loading && activeTask === 'cleanup'" class="animate-spin">↻</span>
+                    <span x-show="!(loading && activeTask === 'cleanup')">Run Task</span>
                 </button>
             </div>
 
-            <div x-show="lastResult && lastResult.stats" x-transition class="mt-6 bg-black/30 rounded p-4 border border-gray-700/50 font-mono text-sm">
+            <div x-show="activeTask === 'cleanup' && lastResult && lastResult.stats" x-transition class="mt-6 bg-black/30 rounded p-4 border border-gray-700/50 font-mono text-sm">
                 <div class="flex justify-between items-center mb-2">
                     <span class="text-green-400 font-bold">Cleanup Complete</span>
                     <button @click="lastResult = null" class="text-gray-500 hover:text-white text-xs">Dismiss</button>
@@ -55,18 +52,14 @@
             </div>
         </div>
 
-
         <div class="bg-gray-800 rounded-lg p-6 border border-gray-700 shadow-lg">
             <div class="flex justify-between items-start">
                 <div>
                     <h3 class="text-xl font-bold text-white flex items-center gap-2">
-                        <span>💾</span> Backup Database
+                        <span>💾</span> Database Backup
                     </h3>
                     <p class="text-gray-400 mt-2 text-sm max-w-xl">
                         Creates a hot snapshot of the database (safe for running apps) and compresses it into a <code>.tar.gz</code> archive.
-                    </p>
-                    <p class="text-gray-500 text-xs mt-2 italic">
-                        Saved to: ./storage/backups/
                     </p>
                 </div>
                 <button
@@ -75,12 +68,12 @@
                     :disabled="loading"
                     :class="loading ? 'opacity-50 cursor-not-allowed' : ''"
                 >
-                    <span x-show="loading" class="animate-spin">↻</span>
-                    <span x-show="!loading">Backup Now</span>
+                    <span x-show="loading && activeTask === 'backup'" class="animate-spin">↻</span>
+                    <span x-show="!(loading && activeTask === 'backup')">Backup Now</span>
                 </button>
             </div>
 
-            <div x-show="lastResult && lastResult.details" x-transition class="mt-6 bg-green-900/20 rounded p-4 border border-green-500/30 font-mono text-sm" style="display: none;">
+            <div x-show="activeTask === 'backup' && lastResult && lastResult.details" x-transition class="mt-6 bg-green-900/20 rounded p-4 border border-green-500/30 font-mono text-sm">
                 <div class="flex justify-between items-center mb-3">
                     <span class="text-green-400 font-bold flex items-center gap-2">
                         <span>✓</span> Backup Successful
@@ -105,9 +98,42 @@
                     </div>
                 </div>
             </div>
-
         </div>
 
+        <div class="bg-gray-800 rounded-lg p-6 border border-gray-700 shadow-lg">
+            <div class="flex justify-between items-start">
+                <div>
+                    <h3 class="text-xl font-bold text-white flex items-center gap-2">
+                        <span>📝</span> Enrich Descriptions
+                    </h3>
+                    <p class="text-gray-400 mt-2 text-sm max-w-xl">
+                        Scans all auto-generated Reading Lists and attempts to match them against the internal database of event descriptions.
+                    </p>
+                </div>
+                <button
+                    @click="runTask('refresh-descriptions')"
+                    class="btn-primary flex items-center gap-2"
+                    :disabled="loading"
+                    :class="loading ? 'opacity-50 cursor-not-allowed' : ''"
+                >
+                    <span x-show="loading && activeTask === 'refresh-descriptions'" class="animate-spin">↻</span>
+                    <span x-show="!(loading && activeTask === 'refresh-descriptions')">Run Task</span>
+                </button>
+            </div>
+
+            <div x-show="activeTask === 'refresh-descriptions' && lastResult"
+                 x-transition
+                 class="mt-6 bg-blue-900/20 rounded p-4 border border-blue-500/30 font-mono text-sm">
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-blue-400 font-bold">Enrichment Complete</span>
+                    <button @click="lastResult = null" class="text-gray-500 hover:text-white text-xs">Dismiss</button>
+                </div>
+                <div class="text-gray-300">
+                    <p>Scanned <span class="text-white font-bold" x-text="lastResult?.stats?.total_scanned"></span> lists.</p>
+                    <p>Updated <span class="text-green-400 font-bold" x-text="lastResult?.stats?.updated"></span> descriptions.</p>
+                </div>
+            </div>
+        </div>
 
     </div>
 </div>
@@ -117,10 +143,12 @@ function taskManager() {
     return {
         loading: false,
         lastResult: null,
+        activeTask: null, // Track which task was run
 
         async runTask(taskName) {
             this.loading = true;
             this.lastResult = null;
+            this.activeTask = taskName; // Set active task context
 
             try {
                 const res = await fetch(`/api/tasks/${taskName}`, { method: 'POST' });
@@ -137,7 +165,6 @@ function taskManager() {
                 this.loading = false;
             }
         }
-
     }
 }
 </script>
