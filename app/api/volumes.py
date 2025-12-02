@@ -52,6 +52,31 @@ async def get_volume_detail(volume_id: int, db: SessionDep, current_user: Curren
         func.max(Comic.count).label('max_count')  # Get the highest 'Count' value found
     ).filter(Comic.volume_id == volume_id).first()
 
+    # Story Arc Aggregation (Scoped to Volume)
+    # 1. Fetch all issues in this volume that have a story_arc defined
+    # 2. Sort by Number so we can identify the "First Issue" of the arc
+    arc_rows = db.query(Comic.id, Comic.story_arc, Comic.number) \
+        .filter(Comic.volume_id == volume_id) \
+        .filter(Comic.story_arc != None, Comic.story_arc != "") \
+        .order_by(func.cast(Comic.number, Float), Comic.number) \
+        .all()
+
+    # Group by Arc Name
+    story_arcs_map = {}
+    for row in arc_rows:
+        name = row.story_arc
+        if name not in story_arcs_map:
+            story_arcs_map[name] = {
+                "name": name,
+                "first_issue_id": row.id,  # First one encountered is the thumbnail/link
+                "count": 0
+            }
+        story_arcs_map[name]["count"] += 1
+
+    # Convert to list and sort alphabetically by Arc Name
+    story_arcs_data = sorted(story_arcs_map.values(), key=lambda x: x['name'])
+
+
     # 2. Find Cover (Plain issues priority)
     base_query = db.query(Comic).filter(Comic.volume_id == volume_id)
     first_issue = get_smart_cover(base_query)
@@ -156,6 +181,7 @@ async def get_volume_detail(volume_id: int, db: SessionDep, current_user: Curren
         "start_year": stats.start_year,
         "end_year": stats.end_year,
         "first_issue_id": first_issue.id if first_issue else None,
+        "story_arcs": story_arcs_data,
         "details": {
             "writers": sorted([r[0] for r in writers]),
             "pencillers": sorted([r[0] for r in pencillers]),
