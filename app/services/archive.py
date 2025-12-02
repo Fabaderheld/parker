@@ -1,3 +1,4 @@
+import logging
 import zipfile
 import rarfile
 from pathlib import Path
@@ -5,6 +6,8 @@ from typing import List, Optional
 import io
 import re
 from app.config import settings
+
+logger = logging.getLogger(__name__)
 
 # Import the rarfile configuration
 import rarfile
@@ -18,8 +21,7 @@ try:
     CB7_SUPPORT = True
 except ImportError:
     CB7_SUPPORT = False
-    print("Warning: py7zr not installed. CB7 support disabled.")
-
+    logger.warning("Warning: py7zr not installed. CB7 support disabled.")
 
 class ComicArchive:
     """Unified interface for CBZ, CBR, and CB7 archives"""
