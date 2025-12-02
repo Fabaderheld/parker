@@ -39,14 +39,34 @@ class EnrichmentService:
         1. Local JSON (Fast, Curated)
         2. Wikipedia API (Optional, Networked)
         """
+        # 1. Try exact match (Normalized)
+        # e.g. "Crisis on Infinite Earths" -> "crisis on infinite earths"
         key = self._normalize(event_name)
-
-        # 1. Local Lookup
         if key in self.local_db:
             return self.local_db[key]
 
+        # 2. Try Quote Prefix Fallback (The "ComicVine Fix")
+        # Pattern: "Context" Event Name
+        # e.g. "Batman" The Resurrection of Ra's al Ghul
+        if '"' in event_name:
+            # split on double quote, take the last part (the actual event name)
+            # "Batman" Event -> ['', 'Batman', ' Event']
+            parts = event_name.split('"')
+
+            # We expect at least 3 parts (empty pre-quote, context, post-quote)
+            if len(parts) >= 3:
+                # The event name is everything after the last quote
+                suffix = parts[-1].strip()
+
+                # Normalize that suffix (removes "The", lowercases, etc)
+                suffix_key = self._normalize(suffix)
+
+                # Check if the clean name exists in our seed file
+                if suffix_key in self.local_db:
+                    return self.local_db[suffix_key]
+
         # TODO: Implement later as this will need to be done in a BG task as the scanner is synchronous and this will block
-        # 2. Wikipedia Lookup (Clean API, no scraping)
+        # 3. Wikipedia Lookup (Clean API, no scraping)
         # We only try this if the event name looks "significant" (e.g. > 3 chars)
         #if len(key) > 3:
         #    return await self._fetch_wikipedia_summary(event_name)
