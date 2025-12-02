@@ -63,13 +63,11 @@ def get_reading_time(total_pages):
     # Heuristic: 1.25 minutes per page
     total_minutes = int(total_pages * 1.25)
 
-    # Format "12h 30m"
-    hours = total_minutes // 60
-    minutes = total_minutes % 60
-
-    if hours > 0:
+    if total_minutes >= 60:
+        hours = total_minutes // 60
+        minutes = total_minutes % 60
         read_time = f"{hours}h {minutes}m"
     else:
-        read_time = f"{minutes}m"
+        read_time = f"{total_minutes}m"
 
     return read_time
