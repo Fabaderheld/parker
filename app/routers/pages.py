@@ -28,7 +28,7 @@ async def library_view(request: Request, library_id: int):
 @router.get("/series/{series_id}", response_class=HTMLResponse)
 async def series_detail(request: Request, series_id: int):
     """Series detail page"""
-    return templates.TemplateResponse("series_detail.html", {
+    return templates.TemplateResponse("comics/series_detail.html", {
         "request": request,
         "series_id": series_id
     })
@@ -78,7 +78,7 @@ async def continue_reading(request: Request):
 @router.get("/volumes/{volume_id}", response_class=HTMLResponse)
 async def volume_detail(request: Request, volume_id: int):
     """Volume detail view"""
-    return templates.TemplateResponse("volume_detail.html", {
+    return templates.TemplateResponse("comics/volume_detail.html", {
         "request": request,
         "volume_id": volume_id
     })
@@ -86,7 +86,7 @@ async def volume_detail(request: Request, volume_id: int):
 @router.get("/comics/{comic_id}", response_class=HTMLResponse)
 async def comic_detail(request: Request, comic_id: int):
     """Comic metadata detail page"""
-    return templates.TemplateResponse("comic_detail.html", {
+    return templates.TemplateResponse("comics/comic_detail.html", {
         "request": request,
         "comic_id": comic_id
     })
