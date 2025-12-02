@@ -3,6 +3,7 @@ from fastapi.responses import Response, FileResponse
 from typing import List, Annotated
 from pathlib import Path
 import re
+import random
 from sqlalchemy.sql.expression import func
 
 from app.api.deps import SessionDep, CurrentUser
@@ -348,9 +349,25 @@ async def get_random_backgrounds(
 ):
     """
     Get a list of random comic thumbnail URLs for the login background.
+    Optimized for performance: Avoids SQL 'ORDER BY RANDOM()' sorting.
     """
-    # SQLite uses 'RANDOM()', Postgres uses 'RANDOM()', MySQL 'RAND()'
-    # SQLAlchemy 'func.random()' usually abstracts this well enough for SQLite.
-    comics = db.query(Comic.id).filter(Comic.thumbnail_path != None).order_by(func.random()).limit(limit).all()
+    # 1. Fetch ALL eligible IDs (Linear scan, fast)
+    # We only fetch the ID column to minimize memory usage
+    all_ids_query = db.query(Comic.id).filter(Comic.thumbnail_path != None).all()
 
-    return [f"api/comics/{c.id}/thumbnail" for c in comics]
+    # SQLAlchemy returns a list of tuples like [(1,), (2,), (5,)]
+    # We flatten this to a standard list [1, 2, 5]
+    all_ids = [r[0] for r in all_ids_query]
+
+    if not all_ids:
+        return []
+
+    # 2. Python Sample (Instant)
+    # Safe handling if we have fewer comics than the requested limit
+    sample_size = min(len(all_ids), limit)
+    selected_ids = random.sample(all_ids, sample_size)
+
+    # 3. Construct URLs (No extra DB query needed)
+    return [f"api/comics/{cid}/thumbnail" for cid in selected_ids]
+
+
