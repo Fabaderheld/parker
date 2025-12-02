@@ -15,7 +15,7 @@
         </div>
 
         <div x-show="!loading.meta && library?.path" class="hidden md:block text-xs text-gray-500 font-mono bg-gray-800 px-3 py-1 rounded border border-gray-700">
-            <span x-text="library.path"></span>
+            <span x-text="library?.path"></span>
         </div>
     </div>
 
@@ -45,7 +45,7 @@
                 </span>
 
                 <button
-                    @click="changePage(currentPage + 1)"
+                    x-on:click="changePage(currentPage + 1)"
                     :disabled="currentPage >= Math.ceil(totalItems / pageSize)"
                     class="px-4 py-2 rounded bg-gray-800 hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed text-white transition-colors border border-gray-600"
                 >
@@ -59,7 +59,7 @@
             <p class="text-sm mt-2 text-gray-400">Scan this library to populate it with series.</p>
 
             <div class="mt-6">
-                <button @click="triggerScan()" class="btn-primary">
+                <button x-on:click="triggerScan()" class="btn-primary">
                     Scan Library Now
                 </button>
             </div>
@@ -92,7 +92,7 @@ function libraryView() {
 
         async loadLibraryMeta() {
             try {
-                const res = await fetch(`/api/libraries/${this.libraryId}`);
+                const res = await fetch(window.url(`/api/libraries/${this.libraryId}`));
                 if (!res.ok) throw new Error("Library not found");
                 this.library = await res.json();
                 document.title = `${this.library.name} - Comic Server`;
@@ -107,7 +107,7 @@ function libraryView() {
             this.loading.series = true;
             try {
                 // Fetch paginated series
-                const url = `/api/libraries/${this.libraryId}/series?page=${this.currentPage}&size=${this.pageSize}`;
+                const url = window.url(`/api/libraries/${this.libraryId}/series?page=${this.currentPage}&size=${this.pageSize}`);
                 const res = await fetch(url);
                 const data = await res.json();
 
@@ -135,7 +135,7 @@ function libraryView() {
         async triggerScan() {
             if (!confirm("Start scanning this library?")) return;
             try {
-                const res = await fetch(`/api/libraries/${this.libraryId}/scan`, { method: 'POST' });
+                const res = await fetch(window.url(`/api/libraries/${this.libraryId}/scan`), { method: 'POST' });
                 const data = await res.json();
 
                 // Show Global Spinner (from base.html polling)
