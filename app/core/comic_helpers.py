@@ -1,4 +1,4 @@
-from sqlalchemy import func, or_, not_
+from sqlalchemy import func, or_, not_, case
 from app.models.comic import Comic
 
 # Centralized list of non-standard formats
@@ -71,3 +71,39 @@ def get_reading_time(total_pages):
         read_time = f"{total_minutes}m"
 
     return read_time
+
+
+# Helper for SQL Order By
+def get_format_sort_index():
+    """
+    Returns a SQLAlchemy CASE expression to weight formats.
+    Usage: query.order_by(get_format_sort_index(), ...)
+
+    Weights:
+    1: Plain Issues (Default)
+    2: Annuals
+    3: Specials / Other Non-Plain
+    """
+    return case(
+        (func.lower(Comic.format) == 'annual', 2),
+        (func.lower(Comic.format).in_(NON_PLAIN_FORMATS), 3),
+        else_=1
+    )
+
+
+# Helper for Python Sorting
+def get_format_weight(fmt_string: str) -> int:
+    """
+    Returns integer weight for python-side sorting.
+    """
+    if not fmt_string:
+        return 1
+
+    fmt = fmt_string.lower().strip()
+
+    if fmt == 'annual':
+        return 2
+    if fmt in NON_PLAIN_FORMATS:
+        return 3
+
+    return 1

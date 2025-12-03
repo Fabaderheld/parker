@@ -1,13 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import Response, FileResponse
-from sqlalchemy import func, Float
+from sqlalchemy import func, Float, case
 from typing import List, Annotated, Optional, Literal
 from pathlib import Path
 import re
 
 
 
-
+from app.core.comic_helpers import get_format_sort_index, get_format_weight
 from app.api.deps import SessionDep, CurrentUser
 from app.models.comic import Comic, Volume
 from app.models.series import Series
@@ -103,15 +103,17 @@ async def get_comic_reader_init(comic_id: int,
 
         context_label = db.query(Series.name).filter(Series.id == context_id).scalar()
 
-        # Logic: Flatten ALL volumes in the series.
-        # Sort by: Volume Number -> Float(Issue Number)
-        # This allows seamless reading from Vol 1 #12 -> Vol 2 #1
+        # Use centralized helper
+        format_weight = get_format_sort_index()
 
+        # Weighted Sort: Plain (1) -> Annual (2) -> Special (3)
+        # This ensures Annual #1 comes AFTER Issue #500
         series_comics = db.query(Comic).join(Volume).filter(
             Volume.series_id == context_id
         ).order_by(
             Volume.volume_number,
-            func.cast(Comic.number, Float),  # Use Float cast for correct 1, 2, 10 sorting
+            format_weight,  # Plain(1) -> Annual(2) -> Special(3)
+            func.cast(Comic.number, Float),
             Comic.number
         ).all()
 
@@ -133,7 +135,11 @@ async def get_comic_reader_init(comic_id: int,
         ).all()
 
         # Sort using helper (ensures Annuals slot in correctly if numbered/dated)
-        siblings.sort(key=lambda x: natural_sort_key(x.number))
+        siblings.sort(key=lambda x: (
+            get_format_weight(x.format),  # Uses helper
+            natural_sort_key(x.number)
+        ))
+
         ids = [c.id for c in siblings]
 
     # --- CALCULATE NEIGHBORS ---
