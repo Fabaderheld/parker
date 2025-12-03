@@ -6,7 +6,8 @@ from app.models import (Comic, Volume, Series,
                         Person, ComicCredit,
                         Collection, CollectionItem,
                         ReadingList, ReadingListItem,
-                        Library)  # Added Library import
+                        PullList, PullListItem,
+                        Library, User)
 
 from app.schemas.search import SearchRequest, SearchFilter
 
@@ -14,8 +15,9 @@ from app.schemas.search import SearchRequest, SearchFilter
 class SearchService:
     """Service for searching comics with complex filters"""
 
-    def __init__(self, db: Session):
+    def __init__(self, db: Session, current_user: User):
         self.db = db
+        self.user = current_user
 
     def search(self, request: SearchRequest) -> Dict[str, Any]:
         """Execute search based on request parameters"""
@@ -118,15 +120,18 @@ class SearchService:
         elif field == 'location':
             return self._build_tag_condition(Comic.locations, Location.name, operator, value)
 
-        # 4. Collections / Reading Lists
+        # 4. Collections / Reading Lists / Pull Lists
         elif field == 'collection':
             return self._build_collection_condition(operator, value)
         elif field == 'reading_list':
             return self._build_reading_list_condition(operator, value)
+        elif field == 'pull_list':
+            return self._build_pull_list_condition(operator, value)
 
         return None
 
-    def _build_simple_field_condition(self, column, operator, value, needs_join=None):
+    @staticmethod
+    def _build_simple_field_condition(column, operator, value, needs_join=None):
         """Build condition for simple fields"""
         # Note: 'needs_join' is a hint for complex queries, but SQLAlchemy often auto-resolves
         # if the relationship path is clear.
@@ -153,7 +158,8 @@ class SearchService:
 
         return None
 
-    def _build_credit_condition(self, role: str, operator: str, value):
+    @staticmethod
+    def _build_credit_condition(role: str, operator: str, value):
         """Build condition for credits using subqueries"""
         values = value if isinstance(value, list) else [value]
 
@@ -182,7 +188,8 @@ class SearchService:
 
         return None
 
-    def _build_tag_condition(self, relationship, name_column, operator, value):
+    @staticmethod
+    def _build_tag_condition(relationship, name_column, operator, value):
         """Generic builder for Many-to-Many tags (Characters, Teams, Locations)"""
         values = value if isinstance(value, list) else [value]
 
@@ -204,10 +211,110 @@ class SearchService:
 
         return None
 
-    # ... (Keep _build_collection_condition, _build_reading_list_condition, _build_empty_condition as they were) ...
-    # They looked correct in your file.
+    @staticmethod
+    def _build_collection_condition(operator: str, value):
+        """Build condition for collections"""
+        if operator == 'equal':
+            return Comic.collection_items.any(
+                CollectionItem.collection.has(Collection.name == value)
+            )
+        elif operator == 'contains':
+            if isinstance(value, list):
+                return Comic.collection_items.any(
+                    CollectionItem.collection.has(Collection.name.in_(value))
+                )
+            return Comic.collection_items.any(
+                CollectionItem.collection.has(Collection.name.ilike(f"%{value}%"))
+            )
 
-    def _apply_sorting(self, query, sort_by: str, sort_order: str):
+        return None
+
+    @staticmethod
+    def _build_reading_list_condition(operator: str, value):
+        """Build condition for reading lists"""
+        if operator == 'equal':
+            return Comic.reading_list_items.any(
+                ReadingListItem.reading_list.has(ReadingList.name == value)
+            )
+        elif operator == 'contains':
+            if isinstance(value, list):
+                return Comic.reading_list_items.any(
+                    ReadingListItem.reading_list.has(ReadingList.name.in_(value))
+                )
+            return Comic.reading_list_items.any(
+                ReadingListItem.reading_list.has(ReadingList.name.ilike(f"%{value}%"))
+            )
+
+        return None
+
+    @staticmethod
+    def _build_empty_condition(field: str, is_empty: bool):
+        """Build condition for checking if field is empty/null"""
+
+        field_map = {
+            'title': Comic.title,
+            'publisher': Comic.publisher,
+            'imprint': Comic.imprint,
+            'format': Comic.format,
+            'series_group': Comic.series_group,
+        }
+
+        # For relationship fields
+        if field == 'character':
+            return ~Comic.characters.any() if is_empty else Comic.characters.any()
+        elif field == 'team':
+            return ~Comic.teams.any() if is_empty else Comic.teams.any()
+        elif field == 'location':
+            return ~Comic.locations.any() if is_empty else Comic.locations.any()
+        elif field == 'collection':
+            return ~Comic.collection_items.any() if is_empty else Comic.collection_items.any()
+        elif field == 'reading_list':
+            return ~Comic.reading_list_items.any() if is_empty else Comic.reading_list_items.any()
+        elif field in ['writer', 'penciller', 'inker', 'colorist', 'letterer', 'cover_artist', 'editor']:
+            if is_empty:
+                return ~Comic.credits.any(ComicCredit.role == field)
+            else:
+                return Comic.credits.any(ComicCredit.role == field)
+        elif field == 'pull_list':
+            return ~Comic.pull_list_items.any() if is_empty else Comic.pull_list_items.any()
+
+        # For simple fields
+        column = field_map.get(field)
+        if column is not None:
+            if is_empty:
+                return or_(column.is_(None), column == '')
+            else:
+                return and_(column.isnot(None), column != '')
+
+        return None
+
+
+    def _build_pull_list_condition(self, operator: str, value):
+        """Build condition for pull lists"""
+
+        # Helper for common logic: Name match AND User match
+        def scope_check(name_condition):
+            return and_(PullList.user_id == self.user.id, name_condition)
+
+        if operator == 'equal':
+            return Comic.pull_list_items.any(
+                PullListItem.pull_list.has(scope_check(PullList.name == value))
+            )
+        elif operator == 'contains':
+            if isinstance(value, list):
+                # OR logic for list of names
+                return Comic.pull_list_items.any(
+                    PullListItem.pull_list.has(scope_check(PullList.name.in_(value)))
+                )
+            # Partial match
+            return Comic.pull_list_items.any(
+                PullListItem.pull_list.has(scope_check(PullList.name.ilike(f"%{value}%")))
+            )
+
+        return None
+
+    @staticmethod
+    def _apply_sorting(query, sort_by: str, sort_order: str):
         if sort_by == 'series':
             col = Series.name
         elif sort_by == 'year':
@@ -227,9 +334,10 @@ class SearchService:
             return query.order_by(col.desc())
         return query.order_by(col.asc())
 
-    def _format_comic(self, comic: Comic) -> dict:
+    @staticmethod
+    def _format_comic(comic: Comic) -> dict:
         """Format comic for response grid"""
-        # NEW: Added thumbnail_path and ID for frontend links
+
         return {
             "id": comic.id,
             "series": comic.volume.series.name,

@@ -115,6 +115,19 @@
             </div>
         </template>
 
+        <template x-if="results.pull_lists?.length > 0">
+            <div>
+                <div class="px-4 py-2 bg-gray-900/50 text-xs font-bold text-gray-400 uppercase tracking-wider sticky top-0 backdrop-blur-sm">Pull Lists</div>
+                <template x-for="item in results.pull_lists" :key="item.id">
+                    <a :href="`/pull-lists/${item.id}`" class="block px-4 py-2 hover:bg-gray-700 transition-colors flex items-center gap-3 group">
+                        <span class="text-xl group-hover:scale-110 transition-transform">🗃️</span>
+                        <div class="font-bold text-white truncate" x-text="item.name"></div>
+                    </a>
+                </template>
+            </div>
+        </template>
+
+
         <a :href="`/search?field=series&value=${encodeURIComponent(query)}&operator=contains`" class="block px-4 py-3 bg-gray-750 text-center text-blue-400 hover:text-white hover:bg-gray-700 text-sm font-medium border-t border-gray-700">
             Advanced Search for "<span x-text="query"></span>"
         </a>

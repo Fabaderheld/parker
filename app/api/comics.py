@@ -67,7 +67,7 @@ async def search_comics(request: SearchRequest, db: SessionDep, current_user: Cu
     }
 ```
     """
-    search_service = SearchService(db)
+    search_service = SearchService(db, current_user)
     results = search_service.search(request)
     return results
 

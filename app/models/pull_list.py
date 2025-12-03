@@ -38,7 +38,7 @@ class PullListItem(Base):
     sort_order = Column(Integer, nullable=False, default=0)
 
     pull_list = relationship("PullList", back_populates="items")
-    comic = relationship("Comic") # Unidirectional access to comic data
+    comic = relationship("Comic", back_populates="pull_list_items")
 
     # Constraint: Ensure a comic appears only once per list (optional, but good for sanity)
     __table_args__ = (
