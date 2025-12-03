@@ -105,6 +105,9 @@ async def get_reading_list(list_id: int, db: SessionDep, current_user: CurrentUs
             "thumbnail_path": f"/api/comics/{comic.id}/thumbnail"
         })
 
+    if len(comics) <= 0:
+        raise HTTPException(status_code=404, detail="No comics found")
+
     # 2. Aggregated Metadata (scoped)
     details = {
         "writers": get_aggregated_metadata(db, Person, ReadingListItem, ReadingListItem.reading_list_id, list_id,'writer', allowed_library_ids=allowed_ids),

@@ -116,6 +116,9 @@ async def get_collection(current_user: CurrentUser,
             "thumbnail_path": f"/api/comics/{comic.id}/thumbnail"
         })
 
+    if len(comics) <= 0:
+        raise HTTPException(status_code=404, detail="No comics found")
+
     # 2. Aggregated Metadata (Scoped)
     # Pass allowed_ids to the helper
     details = {

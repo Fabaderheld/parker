@@ -33,7 +33,15 @@ async def get_volume_detail(volume_id: int, db: SessionDep, current_user: Curren
     """
     Get volume summary with categorized counts.
     """
-    volume = db.query(Volume).join(Series).filter(Volume.id == volume_id).first()
+    query = db.query(Volume).join(Series).filter(Volume.id == volume_id)
+
+    # Apply Library Filter
+    if not current_user.is_superuser:
+        allowed_ids = [lib.id for lib in current_user.accessible_libraries]
+        query = query.filter(Series.library_id.in_(allowed_ids))
+
+    volume = query.first()
+
     if not volume:
         raise HTTPException(status_code=404, detail="Volume not found")
 
@@ -213,6 +221,18 @@ async def get_volume_issues(
     """
     Get paginated issues for a specific volume, filtered by type.
     """
+
+    # Verify Volume Access First
+    # We must ensure the volume belongs to a visible series
+    access_check = db.query(Volume).join(Series).filter(Volume.id == volume_id)
+
+    if not current_user.is_superuser:
+        allowed_ids = [lib.id for lib in current_user.accessible_libraries]
+        access_check = access_check.filter(Series.library_id.in_(allowed_ids))
+
+    if not access_check.first():
+        raise HTTPException(status_code=404, detail="Volume not found")
+
     # Select Comic AND the completed status
     query = db.query(Comic, ReadingProgress.completed).outerjoin(
         ReadingProgress,
