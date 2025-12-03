@@ -392,13 +392,22 @@ class LibraryScanner:
 
                 comicinfo_xml = archive.get_comicinfo()
 
-                metadata = {'page_count': len(pages)}
+                # 1. Establish Physical Truth of page count
+                physical_count = len(pages)
+                metadata = {'page_count': physical_count}
+
                 if comicinfo_xml:
                     parsed = parse_comicinfo(comicinfo_xml)
                     metadata.update(parsed)
+
+                    # Force overwrite: Always use physical count for this field.
+                    # We trust the file system over the XML tag for navigational safety in the reader.
+                    metadata['page_count'] = physical_count
+
                     metadata['raw_metadata'] = parsed
 
                 return metadata
+
         except Exception as e:
             print(f"Error extracting metadata from {file_path}: {e}")
             self.logger.error(f"Error extracting metadata from {file_path}: {e}")
