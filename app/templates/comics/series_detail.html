@@ -396,8 +396,16 @@ function seriesDetail() {
 
         async loadSeriesSummary() {
             try {
-                const res = await fetch(`/api/series/${this.seriesId}`);
-                if (!res.ok) throw new Error("Failed to load series");
+                const res = await fetch(window.url(`/api/series/${this.seriesId}`));
+                if (!res.ok) {
+
+                    if (res.status === 404) {
+                        window.location.href = window.url("/404/");
+                        return;
+                    }
+
+                    throw new Error("Failed to load series");
+                }
                 this.series = await res.json();
                 this.loading = false;
 
@@ -460,7 +468,7 @@ function seriesDetail() {
             this.gridLoading = true;
             try {
                 // Construct URL with pagination and filters
-                const url = `/api/series/${this.seriesId}/issues?type=${this.currentType}&page=${this.currentPage}&size=${this.pageSize}`;
+                const url = window.url(`/api/series/${this.seriesId}/issues?type=${this.currentType}&page=${this.currentPage}&size=${this.pageSize}`);
 
                 const res = await fetch(url);
                 const data = await res.json();
@@ -489,7 +497,7 @@ function seriesDetail() {
         async toggleStar() {
             const method = this.series.starred ? 'DELETE' : 'POST';
             try {
-                const res = await fetch(`/api/series/${this.seriesId}/star`, { method: method });
+                const res = await fetch(window.url(`/api/series/${this.seriesId}/star`), { method: method });
                 if (res.ok) {
                     // Optimistic update
                     this.series.starred = !this.series.starred;
@@ -507,7 +515,7 @@ function seriesDetail() {
             if(!confirm("Admin: Regenerate all thumbnails for this series? This may take a moment.")) return;
 
             try {
-                const res = await fetch(`/api/series/${this.seriesId}/thumbnails`, { method: 'POST' });
+                const res = await fetch(window(`/api/series/${this.seriesId}/thumbnails`), { method: 'POST' });
                 if (res.ok) {
                     alert("Regeneration started! Refresh the page in a minute to see changes.");
                 } else if (res.status === 403 || res.status === 401) {

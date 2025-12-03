@@ -109,3 +109,10 @@ async def dashboard(request: Request):
     return templates.TemplateResponse("user/dashboard.html", {
         "request": request,
     })
+
+@router.get("/404", response_class=HTMLResponse)
+async def dashboard(request: Request):
+    return templates.TemplateResponse("status_codes/404.html", {
+        "request": request,
+    })
+

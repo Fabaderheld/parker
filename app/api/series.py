@@ -45,6 +45,11 @@ async def get_series_detail(series_id: int, db: SessionDep, current_user: Curren
     if not series:
         raise HTTPException(status_code=404, detail="Series not found")
 
+    if not current_user.is_superuser:
+        allowed_ids = [lib.id for lib in current_user.accessible_libraries]
+        if series.library_id not in allowed_ids:
+            raise HTTPException(status_code=404, detail="Library not found")
+
     # 1. Get Volumes
     volumes = db.query(Volume).filter(Volume.series_id == series_id).all()
     volume_ids = [v.id for v in volumes]

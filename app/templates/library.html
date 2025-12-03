@@ -93,7 +93,14 @@ function libraryView() {
         async loadLibraryMeta() {
             try {
                 const res = await fetch(window.url(`/api/libraries/${this.libraryId}`));
-                if (!res.ok) throw new Error("Library not found");
+                if (!res.ok) {
+                    if (res.status === 404) {
+                        window.location.href = window.url("/404/");
+                        return;
+                    }
+
+                    throw new Error("Library not found");
+                }
                 this.library = await res.json();
                 document.title = `${this.library.name} - Comic Server`;
             } catch (e) {

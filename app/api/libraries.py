@@ -13,9 +13,20 @@ from app.api.deps import PaginationParams, PaginatedResponse, SessionDep, Curren
 
 router = APIRouter()
 
+def _has_library_access(library_id: int, current_user: CurrentUser) -> bool:
+
+    if current_user.is_superuser:
+        return True
+
+    allowed_ids = [lib.id for lib in current_user.accessible_libraries]
+    if library_id not in allowed_ids:
+        return False
+
+    return True
+
+
 @router.get("/")
-async def list_libraries(db: SessionDep,
-                         current_user: CurrentUser):
+async def list_libraries(db: SessionDep, current_user: CurrentUser):
     """List libraries accessible to the current user"""
 
     # Superusers see everything
@@ -30,6 +41,9 @@ async def list_libraries(db: SessionDep,
 async def get_library(library_id: int,
                       db: SessionDep,
                       current_user: CurrentUser):
+
+    if not _has_library_access(library_id, current_user):
+        raise HTTPException(status_code=404, detail="Library not found")
 
     """Get a specific library"""
     library = db.query(Library).filter(Library.id == library_id).first()
@@ -49,6 +63,10 @@ async def get_library_series(
     Get all Series within a specific Library (Paginated).
     Sorts alphabetically ignoring 'The ' prefix.
     """
+
+    if not _has_library_access(library_id, current_user):
+        raise HTTPException(status_code=404, detail="Library not found")
+
 
     # 1. Filter by Library
     query = db.query(Series).filter(Series.library_id == library_id)

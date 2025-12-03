@@ -147,7 +147,15 @@ function collectionDetail() {
         async init() {
             try {
                 const res = await fetch(window.url(`/api/collections/${this.collectionId}`));
-                if (!res.ok) throw new Error('Collection not found');
+                if (!res.ok) {
+
+                    if (res.status === 404) {
+                        window.location.href = window.url("/404/");
+                        return;
+                    }
+
+                    throw new Error('Collection not found');
+                }
                 this.collection = await res.json();
                 document.title = `${this.collection.name} - Comic Server`;
             } catch (err) {
