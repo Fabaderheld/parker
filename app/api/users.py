@@ -9,6 +9,7 @@ from pathlib import Path
 from sqlalchemy import func
 
 
+from app.core.comic_helpers import get_reading_time
 from app.api.deps import SessionDep, AdminUser, CurrentUser
 from app.models.comic import Comic
 from app.models.user import User
@@ -71,10 +72,7 @@ async def get_user_dashboard(db: SessionDep, current_user: CurrentUser):
     total_pages = stats_query.total_pages or 0
 
     # Calculate Time (1.25 mins per page)
-    total_minutes = int(total_pages * 1.25)
-    hours = total_minutes // 60
-    minutes = total_minutes % 60
-    time_read_str = f"{hours}h {minutes}m"
+    time_read_str = get_reading_time(total_pages)
 
     # 2. Get Pull Lists (Limit 5 for dashboard overview)
     pull_lists = db.query(PullList).filter(PullList.user_id == current_user.id) \
