@@ -9,7 +9,7 @@ class SearchFilter(BaseModel):
         'library', 'series', 'volume', 'number', 'title', 'publisher', 'imprint',
         'format', 'year', 'writer', 'penciller', 'inker', 'colorist',
         'letterer', 'cover_artist', 'editor', 'character', 'team',
-        'location', 'collection', 'reading_list', 'series_group', 'story_arc'
+        'location', 'collection', 'reading_list', 'series_group', 'story_arc', 'pull_list'
     ]
     operator: Literal[
         'equal', 'not_equal',

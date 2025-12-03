@@ -9,6 +9,7 @@ from app.models.tags import Character, Team, Location
 from app.models.credits import Person, ComicCredit
 from app.models.collection import Collection
 from app.models.reading_list import ReadingList
+from app.models.pull_list import PullList
 
 router = APIRouter()
 
@@ -66,6 +67,9 @@ async def get_search_suggestions(
     elif field == 'reading_list':
         results = db.query(ReadingList.name).filter(ReadingList.name.ilike(f"%{query}%")).limit(10).all()
 
+    elif field == 'pull_list':
+        results = db.query(PullList.name).filter(PullList.name.ilike(f"%{query}%")).limit(10).all()
+
     # Flatten list of tuples [('Name',), ...] -> ['Name', ...]
     return [r[0] for r in results if r[0]]
 
@@ -115,5 +119,9 @@ async def quick_search(
 
     locs_objs = db.query(Location).filter(Location.name.ilike(q_str)).limit(limit).all()
     results["locations"] = [{"id": l.id, "name": l.name} for l in locs_objs]
+
+    # 6. Pull Lists
+    pull_list_objs = db.query(PullList).filter(PullList.name.ilike(q_str)).limit(limit).all()
+    results['pull_lists'] = [{"id": p.id, "name": p.name} for p in pull_list_objs]
 
     return results
