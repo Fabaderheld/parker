@@ -62,7 +62,7 @@ async def run_colorscape_refresh_task(
         admin: AdminUser
 ):
     """
-    Trigger enrichment of reading list descriptions from the seed file.
+    Generate colors for comics that are missing them.
     """
     service = MaintenanceService(db)
     stats = service.backfill_colors()
