@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom"
+      xmlns:dcterms="http://purl.org/dc/terms/"
+      xmlns:opds="http://opds-spec.org/2010/catalog">
+
+  <id>{{ feed_id }}</id>
+  <title>{{ feed_title }}</title>
+  <updated>{{ updated_at.isoformat() }}Z</updated>
+  <author>
+    <name>Parker Media Server</name>
+  </author>
+
+  {# Navigation Entries (Folders/Series) #}
+  {% for entry in entries %}
+  <entry>
+    <title>{{ entry.title }}</title>
+    <id>{{ entry.id }}</id>
+    <updated>{{ entry.updated }}Z</updated>
+    <content type="text">{{ entry.summary or "" }}</content>
+
+    {# The Link to the next level #}
+    <link rel="subsection"
+          type="application/atom+xml;profile=opds-catalog;kind=navigation"
+          href="{{ entry.link }}"/>
+
+    {% if entry.thumbnail %}
+    <link rel="http://opds-spec.org/image/thumbnail"
+          type="image/jpeg"
+          href="{{ entry.thumbnail }}"/>
+    {% endif %}
+  </entry>
+  {% endfor %}
+
+  {# Acquisition Entries (Actual Files) #}
+  {% for book in books %}
+  <entry>
+    <title>{{ book.title }} - #{{ book.number }}</title>
+    <id>urn:parker:comic:{{ book.id }}</id>
+    <updated>{{ book.updated_at.isoformat() }}Z</updated>
+    <author><name>{{ book.writers[0] if book.writers else "Unknown" }}</name></author>
+    <content type="text">{{ book.summary or "" }}</content>
+
+    {# Thumbnail #}
+    <link rel="http://opds-spec.org/image"
+          type="image/jpeg"
+          href="/api/comics/{{ book.id }}/thumbnail"/>
+
+    {# The Download Link #}
+    <link rel="http://opds-spec.org/acquisition"
+          type="application/zip"
+          href="/opds/download/{{ book.id }}"/>
+  </entry>
+  {% endfor %}
+</feed>
