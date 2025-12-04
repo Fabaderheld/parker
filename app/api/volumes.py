@@ -1,5 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func, case, Float, Integer
+from sqlalchemy.orm import joinedload
+
 from typing import List, Annotated
 
 from app.core.comic_helpers import get_format_filters, get_smart_cover, get_reading_time
@@ -9,6 +11,7 @@ from app.api.deps import PaginationParams, PaginatedResponse
 
 from app.models.comic import Comic, Volume
 from app.models.series import Series
+from app.models.library import Library
 from app.models.credits import Person, ComicCredit
 from app.models.tags import Character, Team, Location
 from app.models.reading_progress import ReadingProgress
@@ -33,7 +36,7 @@ async def get_volume_detail(volume_id: int, db: SessionDep, current_user: Curren
     """
     Get volume summary with categorized counts.
     """
-    query = db.query(Volume).join(Series).filter(Volume.id == volume_id)
+    query = db.query(Volume).join(Series).join(Library).filter(Volume.id == volume_id)
 
     # Apply Library Filter
     if not current_user.is_superuser:
@@ -176,6 +179,8 @@ async def get_volume_detail(volume_id: int, db: SessionDep, current_user: Curren
         "volume_number": volume.volume_number,
         "series_id": volume.series.id,
         "series_name": volume.series.name,
+        "library_id": volume.series.library_id,
+        "library_name": volume.series.library.name,
 
         # Counts
         "total_issues": stats.plain_count,  # Use plain count as main count
