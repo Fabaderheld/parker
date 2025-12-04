@@ -94,7 +94,7 @@ function addPullListModal() {
         async fetchLists() {
             this.loading = true;
             try {
-                const res = await fetch('/api/pull-lists/');
+                const res = await fetch(window.url('/api/pull-lists/'));
                 if (res.ok) this.myLists = await res.json();
             } catch (e) {
                 console.error(e);
@@ -114,7 +114,7 @@ function addPullListModal() {
             }
 
             try {
-                const res = await fetch(`/api/pull-lists/${listId}/items`, {
+                const res = await fetch(window.url(`/api/pull-lists/${listId}/items`), {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ comic_id: this.targetId })
@@ -135,7 +135,7 @@ function addPullListModal() {
         async createAndAdd() {
             if (!this.newListName) return;
             try {
-                const createRes = await fetch('/api/pull-lists/', {
+                const createRes = await fetch(window.url('/api/pull-lists/'), {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ name: this.newListName })
