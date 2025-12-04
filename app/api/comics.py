@@ -162,6 +162,7 @@ async def get_comic(comic_id: int, db: SessionDep, current_user: CurrentUser):
         # ColorScape
         "color_primary": comic.color_primary,
         "color_secondary": comic.color_secondary,
+        "color_palette": comic.color_palette,
     }
 
 
