@@ -10,6 +10,7 @@ from app.core.comic_helpers import get_reading_time
 from app.api.deps import SessionDep, CurrentUser
 from app.models.comic import Comic, Volume
 from app.models.series import Series
+from app.models.library import Library
 
 from app.schemas.search import SearchRequest, SearchResponse
 from app.services.search import SearchService
@@ -64,7 +65,7 @@ async def get_comic(comic_id: int, db: SessionDep, current_user: CurrentUser):
     """Get a specific comic with all metadata"""
 
     # Base Query
-    query = db.query(Comic).join(Volume).join(Series).filter(Comic.id == comic_id)
+    query = db.query(Comic).join(Volume).join(Series).join(Library).filter(Comic.id == comic_id)
 
     # Apply Security
     query = filter_by_user_access(query, current_user)
@@ -102,6 +103,10 @@ async def get_comic(comic_id: int, db: SessionDep, current_user: CurrentUser):
         "file_path": comic.file_path,
         "file_size": comic.file_size,
         "thumbnail_path": comic.thumbnail_path,
+
+        # Library info
+        "library_id": comic.volume.series.library_id,
+        "library_name": comic.volume.series.library.name,
 
         # Series info
         "series_id": comic.volume.series.id,
