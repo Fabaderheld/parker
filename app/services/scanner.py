@@ -262,6 +262,12 @@ class LibraryScanner:
             metadata_json=json.dumps(metadata.get('raw_metadata', {}))
         )
 
+        # Extract Colors
+        primary, secondary = self.image_service.extract_dominant_colors(comic.file_path)
+        comic.color_primary = primary
+        comic.color_secondary = secondary
+
+
         self.db.add(comic)
         # CRITICAL: Use flush() instead of commit().
         # This assigns the PK (id) so we can use it for the thumbnail,
@@ -383,6 +389,13 @@ class LibraryScanner:
 
         # Touch Parent Series
         series.updated_at = datetime.utcnow()
+
+        # Extract colors only if missing or if force update
+        if not comic.color_primary:
+            primary, secondary = self.image_service.extract_dominant_colors(comic.file_path)
+            comic.color_primary = primary
+            comic.color_secondary = secondary
+
 
         # NO COMMIT HERE - handled by batch loop
 

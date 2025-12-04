@@ -55,3 +55,19 @@ async def run_refresh_descriptions_task(
         "message": "Enrichment complete",
         "stats": stats
     }
+
+@router.post("/refresh-colorscapes")
+async def run_colorscape_refresh_task(
+        db: SessionDep,
+        admin: AdminUser
+):
+    """
+    Trigger enrichment of reading list descriptions from the seed file.
+    """
+    service = MaintenanceService(db)
+    stats = service.backfill_colors()
+
+    return {
+        "message": "ColorScape backfill complete",
+        "stats": stats
+    }

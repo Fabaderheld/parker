@@ -2,10 +2,12 @@ from sqlalchemy.orm import Session
 
 from app.models.tags import Character, Team, Location
 from app.models.credits import Person
+from app.models.comic import Comic
 from app.models.reading_list import ReadingList
 from app.models.collection import Collection
 
 from app.services.enrichment import EnrichmentService
+from app.services.images import ImageService
 
 class MaintenanceService:
     def __init__(self, db: Session):
@@ -87,3 +89,27 @@ class MaintenanceService:
 
         return {"updated": updated_count, "total_scanned": len(lists)}
 
+    def backfill_colors(self) -> dict:
+        """Generate colors for comics that miss them."""
+        # Fetch comics with null colors
+        comics = self.db.query(Comic).filter(Comic.color_primary == None).all()
+
+        updated = 0
+        img_svc = ImageService()
+
+        for comic in comics:
+            try:
+                p, s = img_svc.extract_dominant_colors(str(comic.file_path))
+                if p:
+                    comic.color_primary = p
+                    comic.color_secondary = s
+                    updated += 1
+
+                # Commit every 50 to avoid massive transactions
+                if updated % 50 == 0:
+                    self.db.commit()
+            except:
+                continue
+
+        self.db.commit()
+        return {"updated": updated, "total_scanned": len(comics)}
