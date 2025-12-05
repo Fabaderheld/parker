@@ -1,11 +1,11 @@
-from fastapi import APIRouter, Request, HTTPException
+from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
 
 from app.core.comic_helpers import get_smart_cover
 from app.api.deps import SessionDep, ComicDep, VolumeDep, SeriesDep, LibraryDep
 from app.core.templates import templates
 from app.models.comic import Comic, Volume
-from app.models.series import Series
+from app.core.login_effects import get_active_effect
 
 router = APIRouter()
 
@@ -114,6 +114,7 @@ async def comic_detail(request: Request, comic: ComicDep):
 async def login_page(request: Request):
     return templates.TemplateResponse("login_full.html", {  # Point to new template
         "request": request,
+        "active_effect": get_active_effect()
     })
 
 @router.get("/pull-lists", response_class=HTMLResponse)
