@@ -111,7 +111,8 @@ async def get_series_detail(series: SeriesDep, db: SessionDep, current_user: Cur
         func.min(Comic.year).label('start_year'),
         func.max(Comic.publisher).label('publisher'),
         func.max(Comic.imprint).label('imprint'),
-        func.sum(Comic.page_count).label('total_pages')
+        func.sum(Comic.page_count).label('total_pages'),
+        func.sum(Comic.file_size).label('total_size')
     ).filter(Comic.volume_id.in_(volume_ids)).first()
 
     # Calculate Reading Time
@@ -244,6 +245,7 @@ async def get_series_detail(series: SeriesDep, db: SessionDep, current_user: Cur
         "special_count": stats.special_count,
         "is_standalone": is_standalone,
         "total_pages": total_pages,
+        "file_size": stats.total_size or 0,
         "read_time": read_time,
         "starred": is_starred,
         "first_issue_id": first_issue.id if first_issue else None,

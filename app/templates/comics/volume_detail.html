@@ -127,6 +127,14 @@
                                                 </svg>
                                                 <span x-text="volume.read_time"></span>
                                             </span>
+
+                                            <span class="flex items-center gap-1" title="Disk Usage">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-600" viewBox="0 0 20 20" fill="currentColor">
+                                                    <path d="M2 11a1 1 0 011-1h16a1 1 0 011 1v6a1 1 0 01-1 1H3a1 1 0 01-1-1v-6zM2 7a1 1 0 011-1h16a1 1 0 011 1v3a1 1 0 01-1 1H3a1 1 0 01-1-1V7zM2 3a1 1 0 011-1h16a1 1 0 011 1v3a1 1 0 01-1 1H3a1 1 0 01-1-1V3z" />
+                                                </svg>
+                                                <span x-text="window.comicServer.formatBytes(volume?.file_size)"></span>
+                                            </span>
+
                                         </div>
                                     </template>
 

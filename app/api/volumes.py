@@ -50,7 +50,8 @@ async def get_volume_detail(volume: VolumeDep, db: SessionDep, current_user: Cur
         func.max(Comic.publisher).label('publisher'),
         func.max(Comic.imprint).label('imprint'),
         func.max(Comic.count).label('max_count'),  # Get the highest 'Count' value found
-        func.sum(Comic.page_count).label('total_pages')
+        func.sum(Comic.page_count).label('total_pages'),
+        func.sum(Comic.file_size).label('total_size')
     ).filter(Comic.volume_id == volume.id).first()
 
     # Calculate Reading Time
@@ -200,6 +201,7 @@ async def get_volume_detail(volume: VolumeDep, db: SessionDep, current_user: Cur
         "special_count": stats.special_count,
         "total_pages": total_pages,
         "read_time": read_time,
+        "file_size": stats.total_size or 0,
 
         # Status Fields
         "status": status,  # "Ongoing" or "Ended"
