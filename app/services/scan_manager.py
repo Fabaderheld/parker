@@ -3,7 +3,7 @@ import time
 import json
 import traceback
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import asc
 
 from app.database import SessionLocal
@@ -54,7 +54,7 @@ class ScanManager:
                 for job in stuck_jobs:
                     job.status = JobStatus.FAILED
                     job.error_message = "Scan interrupted by server restart"
-                    job.completed_at = datetime.utcnow()
+                    job.completed_at = datetime.now(timezone.utc)
 
                     # Also reset the library flag
                     if job.library:
@@ -145,7 +145,7 @@ class ScanManager:
                 if job:
                     # Lock the job: Mark as RUNNING immediately
                     job.status = JobStatus.RUNNING
-                    job.started_at = datetime.utcnow()
+                    job.started_at = datetime.now(timezone.utc)
 
                     # Also set the library flag for UI
                     if job.library:
@@ -206,7 +206,7 @@ class ScanManager:
 
             # Update Job on Success
             job.status = JobStatus.COMPLETED
-            job.completed_at = datetime.utcnow()
+            job.completed_at = datetime.now(timezone.utc)
 
             # Store summary (exclude the full 'comics' list if it's huge)
             summary = {
@@ -248,7 +248,7 @@ class ScanManager:
             if job:
                 job.status = JobStatus.FAILED
                 job.error_message = str(e)
-                job.completed_at = datetime.utcnow()
+                job.completed_at = datetime.now(timezone.utc)
 
             if library:
                 library.is_scanning = False
@@ -277,7 +277,7 @@ class ScanManager:
 
             job.status = JobStatus.COMPLETED
             job.result_summary = json.dumps(stats)
-            job.completed_at = datetime.utcnow()
+            job.completed_at = datetime.now(timezone.utc)
 
             # --- Reset the Library Flag ---
             library = db.query(Library).get(library_id)
@@ -296,7 +296,7 @@ class ScanManager:
             if job:
                 job.status = JobStatus.FAILED
                 job.error_message = str(e)
-                job.completed_at = datetime.utcnow()
+                job.completed_at = datetime.now(timezone.utc)
             db.commit()
         finally:
             db.close()

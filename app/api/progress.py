@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 from typing import List, Optional, Annotated
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 
 from app.core.settings_loader import get_cached_setting
 from app.api.deps import SessionDep, CurrentUser
@@ -38,7 +38,7 @@ async def get_on_deck_progress(
     # Calculate Cutoff
     cutoff_date = None
     if staleness_weeks > 0:
-        cutoff_date = datetime.utcnow() - timedelta(weeks=staleness_weeks)
+        cutoff_date = datetime.now(timezone.utc) - timedelta(weeks=staleness_weeks)
 
     # 3. Query via Service (We need to add this method to Service, or do ad-hoc query here)
     # Since Service abstracts DB, let's do it cleanly via DB directly here for speed

@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, String, ForeignKey, Text, DateTime, UniqueConstraint
 from sqlalchemy.orm import relationship
-from datetime import datetime
+from datetime import datetime, timezone
 from app.database import Base
 
 
@@ -15,8 +15,8 @@ class Collection(Base):
     # Track if this was auto-generated from SeriesGroup
     auto_generated = Column(Integer, default=1)  # SQLite uses 1/0 for boolean
 
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     # Relationship to items (no ordering needed)
     items = relationship("CollectionItem", back_populates="collection", cascade="all, delete-orphan")

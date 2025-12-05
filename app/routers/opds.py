@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, Request, HTTPException
 from fastapi.responses import Response, FileResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import joinedload
-from datetime import datetime
+from datetime import datetime, timezone
 
 from app.api.opds_deps import OPDSUser, SessionDep
 from app.models.library import Library
@@ -38,7 +38,7 @@ async def opds_root(request: Request, user: OPDSUser, db: SessionDep):
         entries.append({
             "id": f"urn:parker:lib:{lib.id}",
             "title": lib.name,
-            "updated": datetime.utcnow().isoformat(),  # Libraries rarely change, using now() is acceptable for root
+            "updated": datetime.now(timezone.utc).isoformat(),  # Libraries rarely change, using now() is acceptable for root
             "link": f"/opds/libraries/{lib.id}",
             "summary": f"Library containing {len(lib.series)} series."
         })
@@ -46,7 +46,7 @@ async def opds_root(request: Request, user: OPDSUser, db: SessionDep):
     return render_xml(request, {
         "feed_id": "urn:parker:root",
         "feed_title": "Parker Library",
-        "updated_at": datetime.utcnow(),
+        "updated_at": datetime.now(timezone.utc),
         "entries": entries,
         "books": []
     })
@@ -82,7 +82,7 @@ async def opds_library(library_id: int, request: Request, user: OPDSUser, db: Se
     return render_xml(request, {
         "feed_id": f"urn:parker:lib:{library_id}",
         "feed_title": library.name,
-        "updated_at": datetime.utcnow(),
+        "updated_at": datetime.now(timezone.utc),
         "entries": entries,
         "books": []
     })
@@ -112,7 +112,7 @@ async def opds_series(series_id: int, request: Request, user: OPDSUser, db: Sess
     return render_xml(request, {
         "feed_id": f"urn:parker:series:{series_id}",
         "feed_title": comics[0].volume.series.name if comics else "Series",
-        "updated_at": datetime.utcnow(),
+        "updated_at": datetime.now(timezone.utc),
         "entries": [],
         "books": comics
     })

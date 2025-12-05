@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, List
 from app.models import ReadingProgress, Comic, Volume
 
@@ -49,7 +49,7 @@ class ReadingProgressService:
             progress.current_page = current_page
             if total_pages is not None:
                 progress.total_pages = total_pages
-            progress.last_read_at = datetime.utcnow()
+            progress.last_read_at = datetime.now(timezone.utc)
 
         # Check if completed (on last page)
         # Safe navigation for total_pages in case it's 0 or None
@@ -79,13 +79,13 @@ class ReadingProgressService:
                 current_page=comic.page_count - 1,
                 total_pages=comic.page_count,
                 completed=True,
-                last_read_at=datetime.utcnow()
+                last_read_at=datetime.now(timezone.utc)
             )
             self.db.add(progress)
         else:
             progress.current_page = progress.total_pages - 1
             progress.completed = True
-            progress.last_read_at = datetime.utcnow()
+            progress.last_read_at = datetime.now(timezone.utc)
 
         # CHANGED: Flush only
         self.db.flush()
