@@ -1,0 +1,4 @@
+pytest
+httpx
+
+#  other dev tools (black, isort, mypy)
