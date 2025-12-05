@@ -1,0 +1,510 @@
+/* === Seasonal FX Styles === */
+.fx-overlay {
+    pointer-events: none;
+}
+
+/* Snow Effect */
+.fx-snow .snowflake {
+    position: absolute;
+    top: -20px;
+    color: white;
+    user-select: none;
+    animation: fall linear infinite;
+    text-shadow: 0 0 5px rgba(255, 255, 255, 0.8);
+}
+
+@keyframes fall {
+    to {
+        transform: translateY(100vh) translateX(30px);
+    }
+}
+
+/* Halloween Orange Hue */
+.fx-orange-hue {
+    background: radial-gradient(circle at 50% 50%,
+        rgba(255, 140, 0, 0.45) 0%,
+        rgba(255, 69, 0, 0.35) 40%,
+        rgba(255, 100, 0, 0.15) 70%,
+        transparent 90%);
+    animation: pulse-glow 4s ease-in-out infinite;
+}
+
+@keyframes pulse-glow {
+    0%, 100% { opacity: 0.85; }
+    50% { opacity: 1; }
+}
+
+/* Floating particles for Halloween */
+.fx-orange-hue::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+        radial-gradient(3px 3px at 20% 30%, rgba(255, 140, 0, 0.5), transparent),  /* Increase size & opacity */
+        radial-gradient(3px 3px at 60% 70%, rgba(255, 69, 0, 0.5), transparent),
+        radial-gradient(2px 2px at 50% 50%, rgba(255, 140, 0, 0.6), transparent),
+        radial-gradient(3px 3px at 80% 10%, rgba(255, 69, 0, 0.5), transparent);
+    background-size: 200px 200px, 300px 300px, 250px 250px, 350px 350px;
+    background-position: 0 0, 40px 60px, 130px 270px, 70px 100px;
+    animation: float-particles 20s linear infinite;
+}
+
+@keyframes float-particles {
+    to { background-position: 200px 200px, 240px 260px, 330px 470px, 270px 300px; }
+}
+
+/* Sakura (Cherry Blossom) Effect */
+.fx-sakura .petal {
+    position: absolute;
+    top: -20px;
+    user-select: none;
+    animation: sakura-fall linear infinite;
+}
+
+@keyframes sakura-fall {
+    0% {
+        transform: translateY(0) translateX(0) rotate(0deg);
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(100vh) translateX(100px) rotate(360deg);
+        opacity: 0.3;
+    }
+}
+
+/* Gentle sway variation */
+.fx-sakura .petal.sway-left {
+    animation: sakura-fall-left linear infinite;
+}
+
+.fx-sakura .petal.sway-right {
+    animation: sakura-fall-right linear infinite;
+}
+
+@keyframes sakura-fall-left {
+    0% {
+        transform: translateY(0) translateX(0) rotate(0deg);
+        opacity: 1;
+    }
+    25% {
+        transform: translateY(25vh) translateX(-30px) rotate(90deg);
+    }
+    50% {
+        transform: translateY(50vh) translateX(0px) rotate(180deg);
+    }
+    75% {
+        transform: translateY(75vh) translateX(-20px) rotate(270deg);
+    }
+    100% {
+        transform: translateY(100vh) translateX(-40px) rotate(360deg);
+        opacity: 0.3;
+    }
+}
+
+@keyframes sakura-fall-right {
+    0% {
+        transform: translateY(0) translateX(0) rotate(0deg);
+        opacity: 1;
+    }
+    25% {
+        transform: translateY(25vh) translateX(30px) rotate(-90deg);
+    }
+    50% {
+        transform: translateY(50vh) translateX(0px) rotate(-180deg);
+    }
+    75% {
+        transform: translateY(75vh) translateX(20px) rotate(-270deg);
+    }
+    100% {
+        transform: translateY(100vh) translateX(40px) rotate(-360deg);
+        opacity: 0.3;
+    }
+}
+
+/* Soft pink ambient glow */
+.fx-sakura-glow {
+    background:
+        radial-gradient(circle at 30% 40%,
+            rgba(255, 182, 193, 0.3) 0%,
+            transparent 60%),
+        radial-gradient(circle at 70% 60%,
+            rgba(255, 192, 203, 0.3) 0%,
+            transparent 60%),
+        radial-gradient(circle at 50% 30%,
+            rgba(255, 182, 193, 0.35) 0%,
+            rgba(255, 192, 203, 0.25) 40%,
+            rgba(255, 182, 193, 0.15) 65%,
+            transparent 85%);
+    animation: sakura-pulse 6s ease-in-out infinite;
+}
+
+@keyframes sakura-pulse {
+    0%, 100% { opacity: 0.9; }
+    50% { opacity: 1; }
+}
+
+
+/* Summer Fireflies Effect */
+.fx-fireflies .firefly {
+    position: absolute;
+    width: 3px;
+    height: 3px;
+    background: rgba(255, 255, 150, 0.9);
+    border-radius: 50%;
+    box-shadow: 0 0 10px 3px rgba(255, 255, 100, 0.8),
+                0 0 20px 5px rgba(255, 255, 150, 0.4);
+    animation: firefly-float linear infinite, firefly-glow ease-in-out infinite;
+}
+
+@keyframes firefly-float {
+    0% {
+        transform: translate(0, 0);
+    }
+    25% {
+        transform: translate(30px, -50vh) translateX(20px);
+    }
+    50% {
+        transform: translate(-20px, -100vh) translateX(-30px);
+    }
+    75% {
+        transform: translate(40px, -150vh) translateX(10px);
+    }
+    100% {
+        transform: translate(0, -200vh) translateX(-20px);
+    }
+}
+
+@keyframes firefly-glow {
+    0%, 100% {
+        opacity: 0.2;
+        box-shadow: 0 0 5px 2px rgba(255, 255, 100, 0.4);
+    }
+    50% {
+        opacity: 1;
+        box-shadow: 0 0 15px 5px rgba(255, 255, 100, 0.9),
+                    0 0 25px 8px rgba(255, 255, 150, 0.6);
+    }
+}
+
+/* Warm summer evening glow */
+.fx-fireflies-glow {
+    background: radial-gradient(circle at 50% 50%,
+        rgba(255, 200, 100, 0.15) 0%,
+        rgba(255, 220, 130, 0.10) 40%,
+        rgba(255, 180, 80, 0.08) 65%,
+        transparent 85%);
+    animation: summer-pulse 8s ease-in-out infinite;
+}
+
+@keyframes summer-pulse {
+    0%, 100% { opacity: 0.7; }
+    50% { opacity: 0.9; }
+}
+
+/* Fall - Falling Leaves Effect */
+.fx-falling-leaves .leaf {
+    position: absolute;
+    top: -20px;
+    user-select: none;
+    animation: leaf-fall linear infinite;
+}
+
+/* Main tumbling fall animation */
+@keyframes leaf-fall {
+    0% {
+        transform: translateY(0) translateX(0) rotate(0deg);
+        opacity: 1;
+    }
+    25% {
+        transform: translateY(25vh) translateX(-40px) rotate(90deg);
+    }
+    50% {
+        transform: translateY(50vh) translateX(20px) rotate(180deg);
+    }
+    75% {
+        transform: translateY(75vh) translateX(-30px) rotate(270deg);
+    }
+    100% {
+        transform: translateY(100vh) translateX(10px) rotate(360deg);
+        opacity: 0.7;
+    }
+}
+
+/* Spiral fall variation */
+.fx-falling-leaves .leaf.spiral {
+    animation: leaf-spiral linear infinite;
+}
+
+@keyframes leaf-spiral {
+    0% {
+        transform: translateY(0) translateX(0) rotate(0deg) scale(1);
+        opacity: 1;
+    }
+    25% {
+        transform: translateY(25vh) translateX(30px) rotate(-90deg) scale(0.9);
+    }
+    50% {
+        transform: translateY(50vh) translateX(-20px) rotate(-180deg) scale(0.8);
+    }
+    75% {
+        transform: translateY(75vh) translateX(40px) rotate(-270deg) scale(0.9);
+    }
+    100% {
+        transform: translateY(100vh) translateX(-10px) rotate(-360deg) scale(1);
+        opacity: 0.6;
+    }
+}
+
+/* Gentle sway variation */
+.fx-falling-leaves .leaf.sway {
+    animation: leaf-sway linear infinite;
+}
+
+@keyframes leaf-sway {
+    0% {
+        transform: translateY(0) translateX(0) rotate(0deg);
+        opacity: 1;
+    }
+    20% {
+        transform: translateY(20vh) translateX(15px) rotate(72deg);
+    }
+    40% {
+        transform: translateY(40vh) translateX(-10px) rotate(144deg);
+    }
+    60% {
+        transform: translateY(60vh) translateX(20px) rotate(216deg);
+    }
+    80% {
+        transform: translateY(80vh) translateX(-15px) rotate(288deg);
+    }
+    100% {
+        transform: translateY(100vh) translateX(5px) rotate(360deg);
+        opacity: 0.7;
+    }
+}
+
+/* Autumn colors for leaves */
+.leaf-orange { color: #FF8C00; filter: drop-shadow(0 0 3px rgba(255, 140, 0, 0.5)); }
+.leaf-red { color: #DC143C; filter: drop-shadow(0 0 3px rgba(220, 20, 60, 0.5)); }
+.leaf-yellow { color: #FFD700; filter: drop-shadow(0 0 3px rgba(255, 215, 0, 0.5)); }
+.leaf-brown { color: #8B4513; filter: drop-shadow(0 0 3px rgba(139, 69, 19, 0.5)); }
+.leaf-russet { color: #B7410E; filter: drop-shadow(0 0 3px rgba(183, 65, 14, 0.5)); }
+
+/* Warm autumn ambient glow */
+.fx-autumn-glow {
+    background: radial-gradient(circle at 50% 40%,
+        rgba(255, 140, 0, 0.25) 0%,
+        rgba(220, 100, 50, 0.18) 40%,
+        rgba(180, 80, 40, 0.12) 65%,
+        transparent 85%);
+    animation: autumn-pulse 7s ease-in-out infinite;
+}
+
+@keyframes autumn-pulse {
+    0%, 100% { opacity: 0.9; }
+    50% { opacity: 1; }
+}
+
+/* New Years - Fireworks Effect */
+.fx-fireworks .firework {
+    position: absolute;
+    width: 6px;  /* Increased from 4px */
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;  /* Add solid background */
+}
+
+/* Firework launch and explosion animation */
+@keyframes firework-launch {
+    0% {
+        transform: translateY(0);
+        opacity: 1;
+    }
+    50% {
+        transform: translateY(-60vh);
+        opacity: 1;
+    }
+    55% {
+        transform: translateY(-60vh);
+        opacity: 1;
+        box-shadow:
+            0 0 30px 10px currentColor,
+            0 0 50px 15px currentColor;
+    }
+    60% {
+        transform: translateY(-60vh);
+        opacity: 1;
+        box-shadow:
+            0 0 40px 15px currentColor,
+            0 0 80px 25px currentColor,
+            0 25px 10px 5px currentColor,
+            25px 0 10px 5px currentColor,
+            0 -25px 10px 5px currentColor,
+            -25px 0 10px 5px currentColor,
+            18px 18px 10px 5px currentColor,
+            -18px 18px 10px 5px currentColor,
+            18px -18px 10px 5px currentColor,
+            -18px -18px 10px 5px currentColor;
+    }
+    75% {
+        transform: translateY(-60vh);
+        opacity: 1;
+        box-shadow:
+            0 0 60px 20px currentColor,
+            0 0 120px 40px currentColor,
+            0 70px 15px 8px currentColor,
+            70px 0 15px 8px currentColor,
+            0 -70px 15px 8px currentColor,
+            -70px 0 15px 8px currentColor,
+            50px 50px 15px 8px currentColor,
+            -50px 50px 15px 8px currentColor,
+            50px -50px 15px 8px currentColor,
+            -50px -50px 15px 8px currentColor,
+            35px 0 10px 5px currentColor,
+            -35px 0 10px 5px currentColor,
+            0 35px 10px 5px currentColor,
+            0 -35px 10px 5px currentColor;
+    }
+    100% {
+        transform: translateY(-60vh);
+        opacity: 0;
+        box-shadow:
+            0 0 80px 30px currentColor,
+            0 0 150px 50px currentColor,
+            0 100px 20px 10px currentColor,
+            100px 0 20px 10px currentColor,
+            0 -100px 20px 10px currentColor,
+            -100px 0 20px 10px currentColor,
+            70px 70px 20px 10px currentColor,
+            -70px 70px 20px 10px currentColor,
+            70px -70px 20px 10px currentColor,
+            -70px -70px 20px 10px currentColor,
+            50px 0 15px 8px currentColor,
+            -50px 0 15px 8px currentColor,
+            0 50px 15px 8px currentColor,
+            0 -50px 15px 8px currentColor;
+    }
+}
+
+/* Different firework colors - BRIGHTER */
+.firework-red { color: #FF1744; filter: brightness(1.5); }
+.firework-blue { color: #2979FF; filter: brightness(1.5); }
+.firework-gold { color: #FFD700; filter: brightness(1.8); }
+.firework-green { color: #00E676; filter: brightness(1.5); }
+.firework-purple { color: #D500F9; filter: brightness(1.5); }
+.firework-cyan { color: #00E5FF; filter: brightness(1.5); }
+.firework-orange { color: #FF6D00; filter: brightness(1.6); }
+.firework-pink { color: #FF4081; filter: brightness(1.5); }
+
+/* Alternative burst pattern - starburst - BRIGHTER */
+@keyframes firework-starburst {
+    0% {
+        transform: translateY(0);
+        opacity: 1;
+    }
+    45% {
+        transform: translateY(-55vh);
+        opacity: 1;
+    }
+    50% {
+        transform: translateY(-55vh);
+        opacity: 1;
+        box-shadow:
+            0 0 35px 15px currentColor,
+            0 0 60px 20px currentColor;
+    }
+    55% {
+        transform: translateY(-55vh);
+        opacity: 1;
+        box-shadow:
+            0 0 50px 20px currentColor,
+            0 60px 12px 8px currentColor,
+            60px 0 12px 8px currentColor,
+            0 -60px 12px 8px currentColor,
+            -60px 0 12px 8px currentColor,
+            42px 42px 12px 8px currentColor,
+            -42px 42px 12px 8px currentColor,
+            42px -42px 12px 8px currentColor,
+            -42px -42px 12px 8px currentColor,
+            30px 0 8px 5px currentColor,
+            -30px 0 8px 5px currentColor,
+            0 30px 8px 5px currentColor,
+            0 -30px 8px 5px currentColor,
+            21px 21px 8px 5px currentColor,
+            -21px 21px 8px 5px currentColor,
+            21px -21px 8px 5px currentColor,
+            -21px -21px 8px 5px currentColor;
+    }
+    70% {
+        transform: translateY(-55vh);
+        opacity: 1;
+        box-shadow:
+            0 0 70px 30px currentColor,
+            0 90px 18px 12px currentColor,
+            90px 0 18px 12px currentColor,
+            0 -90px 18px 12px currentColor,
+            -90px 0 18px 12px currentColor,
+            64px 64px 18px 12px currentColor,
+            -64px 64px 18px 12px currentColor,
+            64px -64px 18px 12px currentColor,
+            -64px -64px 18px 12px currentColor,
+            45px 0 12px 8px currentColor,
+            -45px 0 12px 8px currentColor,
+            0 45px 12px 8px currentColor,
+            0 -45px 12px 8px currentColor,
+            32px 32px 12px 8px currentColor,
+            -32px 32px 12px 8px currentColor,
+            32px -32px 12px 8px currentColor,
+            -32px -32px 12px 8px currentColor;
+    }
+    100% {
+        transform: translateY(-55vh);
+        opacity: 0;
+        box-shadow:
+            0 0 90px 40px currentColor,
+            0 120px 25px 15px currentColor,
+            120px 0 25px 15px currentColor,
+            0 -120px 25px 15px currentColor,
+            -120px 0 25px 15px currentColor,
+            85px 85px 25px 15px currentColor,
+            -85px 85px 25px 15px currentColor,
+            85px -85px 25px 15px currentColor,
+            -85px -85px 25px 15px currentColor,
+            60px 0 18px 12px currentColor,
+            -60px 0 18px 12px currentColor,
+            0 60px 18px 12px currentColor,
+            0 -60px 18px 12px currentColor,
+            42px 42px 18px 12px currentColor,
+            -42px 42px 18px 12px currentColor,
+            42px -42px 18px 12px currentColor,
+            -42px -42px 18px 12px currentColor;
+    }
+}
+
+/* Celebratory shimmer background - BRIGHTER */
+.fx-celebration-glow {
+    background: radial-gradient(circle at 50% 20%,
+        rgba(255, 215, 0, 0.30) 0%,
+        rgba(255, 100, 180, 0.20) 30%,
+        rgba(100, 150, 255, 0.15) 60%,
+        transparent 85%);
+    animation: celebration-pulse 5s ease-in-out infinite;
+}
+
+@keyframes celebration-pulse {
+    0%, 100% { opacity: 0.9; }
+    50% { opacity: 1; }
+}
+
+/* Toggle button */
+.fx-toggle {
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: all 0.2s;
+}
+
+.fx-toggle:hover {
+    background: rgba(0, 0, 0, 0.7);
+    border-color: rgba(255, 255, 255, 0.3);
+}

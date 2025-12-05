@@ -1,0 +1,85 @@
+<!-- Seasonal FX Layer (z-15) -->
+<div x-show="fxEnabled && activeEffect"
+     x-transition:enter="transition ease-out duration-1000"
+     x-transition:enter-start="opacity-0"
+     x-transition:enter-end="opacity-100"
+     :class="'fx-overlay fx-' + activeEffect"
+     class="absolute inset-0 z-15">
+
+    {% if active_effect == 'snow' %}
+        <!-- Snow Effect -->
+        <div class="fx-snow">
+            {% for i in range(50) %}
+            <div class="snowflake" style="
+                left: {{ range(0, 100) | random }}%;
+                animation-duration: {{ range(10, 30) | random }}s;
+                animation-delay: -{{ range(0, 20) | random }}s;
+                opacity: {{ (range(50, 100) | random) / 100 }};
+                font-size: {{ range(10, 20) | random }}px;
+            ">❄</div>
+            {% endfor %}
+        </div>
+    {% elif active_effect == 'orange-hue' %}
+        <!-- Orange Hue Effect (Halloween) -->
+        <div class="fx-orange-hue absolute inset-0"></div>
+    {% elif active_effect == 'sakura' %}
+        <!-- Sakura (Cherry Blossom) Effect -->
+        <div class="fx-sakura-glow absolute inset-0"></div>
+        <div class="fx-sakura">
+            {% for i in range(40) %}
+            {% set sway = ['', 'sway-left', 'sway-right'][range(0, 3) | random] %}
+            <div class="petal {{ sway }}" style="
+                left: {{ range(0, 100) | random }}%;
+                animation-duration: {{ range(12, 25) | random }}s;
+                animation-delay: -{{ range(0, 15) | random }}s;
+                font-size: {{ range(14, 24) | random }}px;
+                opacity: {{ (range(60, 100) | random) / 100 }};
+            ">🌸</div>
+            {% endfor %}
+        </div>
+    {% elif active_effect == 'fireflies' %}
+        <!-- Summer Fireflies Effect -->
+        <div class="fx-fireflies-glow absolute inset-0"></div>
+        <div class="fx-fireflies">
+            {% for i in range(30) %}
+            <div class="firefly" style="
+                left: {{ range(0, 100) | random }}%;
+                top: {{ range(80, 120) | random }}%;
+                animation-duration: {{ range(15, 30) | random }}s, {{ range(2, 4) | random }}s;
+                animation-delay: -{{ range(0, 20) | random }}s, -{{ range(0, 3) | random }}s;
+            "></div>
+            {% endfor %}
+        </div>
+    {% elif active_effect == 'falling-leaves' %}
+        <!-- Fall - Falling Leaves Effect -->
+        <div class="fx-autumn-glow absolute inset-0"></div>
+        <div class="fx-falling-leaves">
+            {% for i in range(45) %}
+            {% set animation = ['', 'spiral', 'sway'][range(0, 3) | random] %}
+            {% set color = ['leaf-orange', 'leaf-red', 'leaf-yellow', 'leaf-brown', 'leaf-russet'][range(0, 5) | random] %}
+            <div class="leaf {{ animation }} {{ color }}" style="
+                left: {{ range(0, 100) | random }}%;
+                animation-duration: {{ range(8, 18) | random }}s;
+                animation-delay: -{{ range(0, 15) | random }}s;
+                font-size: {{ range(16, 28) | random }}px;
+                opacity: {{ (range(70, 100) | random) / 100 }};
+            ">🍂</div>
+            {% endfor %}
+        </div>
+    {% elif active_effect == 'fireworks' %}
+        <!-- New Years - Fireworks Effect -->
+        <div class="fx-celebration-glow absolute inset-0"></div>
+        <div class="fx-fireworks">
+            {% for i in range(15) %}
+            {% set animation = ['firework-launch', 'firework-starburst'][range(0, 2) | random] %}
+            {% set color = ['firework-red', 'firework-blue', 'firework-gold', 'firework-green', 'firework-purple', 'firework-cyan', 'firework-orange', 'firework-pink'][range(0, 8) | random] %}
+            <div class="firework {{ color }}" style="
+                left: {{ range(10, 90) | random }}%;
+                bottom: 0;
+                animation: {{ animation }} {{ range(3, 5) | random }}s ease-out infinite;
+                animation-delay: {{ range(0, 40) | random / 10 }}s;
+            "></div>
+            {% endfor %}
+        </div>
+    {% endif %}
+</div>
