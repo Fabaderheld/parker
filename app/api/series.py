@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, BackgroundTasks
 from sqlalchemy import func, case, Float
 from sqlalchemy.orm import joinedload
 from typing import List, Optional, Annotated
-from datetime import datetime
+from datetime import datetime, timezone
 
 from app.core.comic_helpers import get_format_filters, get_smart_cover, get_reading_time
 
@@ -380,7 +380,7 @@ async def star_series(series_id: int, db: SessionDep, current_user: CurrentUser)
         db.add(pref)
 
     pref.is_starred = True
-    pref.starred_at = datetime.utcnow()
+    pref.starred_at = datetime.now(timezone.utc)
     db.commit()
     return {"starred": True}
 

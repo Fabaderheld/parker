@@ -140,8 +140,25 @@ async def get_volume_detail(volume: VolumeDep, db: SessionDep, current_user: Cur
             .all()
 
         # Create sets for comparison
+
+        # What we have
         existing_set = set(row[0] for row in existing_numbers if row[0] is not None)
-        expected_set = set(range(1, expected_count + 1))
+
+        # Detect if this series uses "Zero Indexing" (Starts at #0)
+        # Note: Since existing_numbers is filtered by 'is_plain', a Special #0 won't trigger this.
+        # This correctly forces the user to tag #0 as 'Plain' if it counts towards the run.
+        has_zero_issue = 0 in existing_set
+        if has_zero_issue:
+            # If we have a #0, the range is 0 to (Count - 1)
+            # Example: Count 4 becomes {0, 1, 2, 3}
+            expected_set = set(range(0, expected_count))
+        else:
+            # Standard 1-based indexing
+            # Example: Count 4 becomes {1, 2, 3, 4}
+            expected_set = set(range(1, expected_count + 1))
+
+
+        #expected_set = set(range(1, expected_count + 1))
 
         # Find the difference
         missing_set = expected_set - existing_set

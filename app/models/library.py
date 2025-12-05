@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, String, DateTime, Boolean
 from sqlalchemy.orm import relationship
-from datetime import datetime
+from datetime import datetime, timezone
 from app.database import Base
 
 
@@ -15,7 +15,7 @@ class Library(Base):
 
     last_scanned = Column(DateTime, nullable=True)
     is_scanning = Column(Boolean, default=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     # Relationships - use string reference to avoid circular import
     series = relationship("Series", back_populates="library", cascade="all, delete-orphan")

@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import List, Dict, Optional
 from sqlalchemy.orm import Session
-from datetime import datetime
+from datetime import datetime, timezone
 import json
 import os
 import time
@@ -164,7 +164,7 @@ class LibraryScanner:
         self.collection_service.cleanup_empty_collections()
 
         # Update library scan time
-        self.library.last_scanned = datetime.utcnow()
+        self.library.last_scanned = datetime.now(timezone.utc)
         self.db.commit()
 
         elapsed_time = round(time.time() - start_time, 2)
@@ -307,7 +307,7 @@ class LibraryScanner:
 
         # Touch Parent Series to update 'updated_at'
         # This ensures it shows up in "Recently Updated"
-        series.updated_at = datetime.utcnow()
+        series.updated_at = datetime.now(timezone.utc)
         # Note: SQLAlchemy tracks dirty state, so this will trigger an UPDATE on commit
 
 
@@ -359,7 +359,7 @@ class LibraryScanner:
         comic.story_arc = metadata.get('story_arc')
         comic.count = int(metadata.get('count')) if metadata.get('count') else None
         comic.metadata_json = json.dumps(metadata.get('raw_metadata', {}))
-        comic.updated_at = datetime.utcnow()
+        comic.updated_at = datetime.now(timezone.utc)
 
         # Update credits
         self.credit_service.add_credits_to_comic(comic, metadata)
@@ -390,7 +390,7 @@ class LibraryScanner:
         )
 
         # Touch Parent Series
-        series.updated_at = datetime.utcnow()
+        series.updated_at = datetime.now(timezone.utc)
 
         # Extract colors only if missing or if force update
         if not comic.color_primary:
