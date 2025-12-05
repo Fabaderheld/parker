@@ -43,8 +43,6 @@ def get_active_effect() -> Optional[str]:
     today = datetime.now()
     month, day = today.month, today.day
 
-    return "falling-leaves"
-
     # Sort effects by priority (1 = highest)
     sorted_effects = sorted(
         SEASONAL_EFFECTS.items(),
