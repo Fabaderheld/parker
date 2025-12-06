@@ -62,7 +62,8 @@ async def lifespan(app: FastAPI):
     settings.avatar_dir.mkdir(parents=True, exist_ok=True)
 
     # Create database tables (models are now imported)
-    Base.metadata.create_all(bind=engine)
+    # DEV use only, and we have migrations now
+    #Base.metadata.create_all(bind=engine)
 
 
     # --- NEW: Auto-Create Default Admin and initialize settings  ---
