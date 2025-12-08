@@ -262,7 +262,8 @@ class SearchService:
             'format': Comic.format,
             'series_group': Comic.series_group,
             'summary': Comic.summary,
-            'web': Comic.web
+            'web': Comic.web,
+            'rating': Comic.community_rating
         }
 
         # For relationship fields
@@ -327,8 +328,10 @@ class SearchService:
             col = Comic.year
         elif sort_by == 'title':
             col = Comic.title
-        elif sort_by == 'page_count':  # Added this one from schema
+        elif sort_by == 'page_count':
             col = Comic.page_count
+        elif sort_by == 'rating':
+            col = Comic.community_rating
         elif sort_by == 'updated':
             col = Comic.updated_at
         elif sort_by == 'created':  # (Explicit)
@@ -337,8 +340,18 @@ class SearchService:
             col = Comic.created_at # Default fallback
 
         if sort_order == 'desc':
-            return query.order_by(col.desc())
-        return query.order_by(col.asc())
+            # Primary Sort
+            query = query.order_by(col.desc())
+        else:
+            query = query.order_by(col.asc())
+
+        # SECONDARY SORT (Stability)
+        # If sorting by Rating, Year, or Page Count, ties are common.
+        # Always break ties with Series Name -> Number
+        if sort_by in ['rating', 'year', 'page_count']:
+            query = query.order_by(Series.name.asc(), Comic.number.asc())
+
+        return query
 
     @staticmethod
     def _format_comic(comic: Comic) -> dict:
@@ -353,5 +366,6 @@ class SearchService:
             "year": comic.year,
             "publisher": comic.publisher,
             "format": comic.format,
-            "thumbnail_path": f"/api/comics/{comic.id}/thumbnail"
+            "thumbnail_path": f"/api/comics/{comic.id}/thumbnail",
+            "community_rating": comic.community_rating
         }
