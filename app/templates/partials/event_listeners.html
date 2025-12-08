@@ -21,10 +21,19 @@
         if(!confirm(`Mark ${$store.batch.count} items as ${action}?`)) return;
 
         try {
-            // Prepare payload with the boolean flag
-            const payload = { ...$store.batch.payload, read: isRead };
 
-            const res = await fetch('/api/batch/read-status', {
+            // Prepare payload
+            // Access the getter once to avoid re-calculating it multiple times
+            const batchPayload = $store.batch.payload;
+
+            // Prepare payload with the boolean flag
+            const payload = { ...batchPayload, read: isRead };
+
+            // Use the typed array from the payload
+            // This ensures we don't accidentally update Comic #1 when we selected Series #1
+            const affectedIds = batchPayload.comic_ids;
+
+            const res = await fetch(window.url('/api/batch/read-status'), {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify(payload)
@@ -32,6 +41,16 @@
 
             if(res.ok) {
                 window.comicServer.showToast(`Batch marked as ${action}!`);
+
+                // Dispatch update event
+                // This tells every card on the page to check if it needs to update
+                window.dispatchEvent(new CustomEvent('comics-updated', {
+                    detail: {
+                        ids: affectedIds,
+                        read: isRead
+                    }
+                }));
+
                 $store.batch.clear();
                 // window.location.reload(); // Recommended to reflect 'Unread' state immediately
             }

@@ -1,12 +1,24 @@
 <div class="relative select-none"
      x-data="{
+        isRead: comic.read,
         get readerQueryParams() {
             if(typeof readingList !== 'undefined') { return `context_type=reading_list&context_id=${this.readingListId}`; }
             else if(typeof collection !== 'undefined') { return `context_type=collection&context_id=${this.collection.id}`; }
             else { return ''; }
         },
-        get isSelected() { return $store.batch && $store.batch.has(comic.id, 'comic'); }
-     }">
+        get isSelected() { return $store.batch && $store.batch.has(comic.id, 'comic'); },
+        updateStatus(e) {
+            console.log('event received');
+            // Check if my ID was included in the batch
+            if (e.detail.ids.includes(comic.id)) {
+                this.isRead = e.detail.read;
+
+                // Optional: Update the source object too so other widgets (like filtering) stay in sync
+                if(typeof comic === 'object') comic.read = e.detail.read;
+            }
+        }
+
+     }" @comics-updated.window="updateStatus($event)">
 
     <a :href="`/reader/${comic.id}?${readerQueryParams}`" class="block group relative cursor-pointer">
 
@@ -42,7 +54,7 @@
                 ></div>
             </template>
 
-            <template x-if="comic.read">
+            <template x-if="isRead">
                  <div class="absolute top-2 right-2 z-10 bg-green-500 text-white rounded-full p-0.5 shadow-md border border-green-400 pointer-events-none">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                       <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
@@ -60,7 +72,7 @@
             <div x-show="!isSelected && !$store.batch.active"
                  class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-60 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100 pointer-events-none">
                 <span class="text-white font-bold bg-blue-600 px-4 py-2 rounded-full transform scale-90 group-hover:scale-100 transition-all shadow-lg pointer-events-auto">
-                    Read
+                    <span x-text="isRead ? 'Read Again' : 'Read'"></span>
                 </span>
             </div>
         </div>
