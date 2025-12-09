@@ -30,12 +30,38 @@ def _has_library_access(library_id: int, current_user: CurrentUser) -> bool:
 async def list_libraries(db: SessionDep, current_user: CurrentUser):
     """List libraries accessible to the current user"""
 
-    # Superusers see everything
+    # Fetch the libraries based on permissions
     if current_user.is_superuser:
-        return db.query(Library).all()
+        libs = db.query(Library).all()
+    else:
+        libs = current_user.accessible_libraries
 
-    # Regular users see only assigned libraries
-    return current_user.accessible_libraries
+    # Iterate and Count
+    results = []
+    for lib in libs:
+
+        # Count Series directly
+        series_count = db.query(Series).filter(Series.library_id == lib.id).count()
+
+        # Count Issues (Join Comic -> Volume -> Series)
+        issue_count = db.query(Comic).join(Volume).join(Series) \
+            .filter(Series.library_id == lib.id).count()
+
+        # Construct the response dict
+        # We manually build the dict to inject the 'stats' object
+        results.append({
+            "id": lib.id,
+            "name": lib.name,
+            "path": lib.path,
+            "watch_mode": lib.watch_mode,
+            "created_at": lib.created_at,
+            "stats": {
+                "series": series_count,
+                "issues": issue_count
+            }
+        })
+
+    return results
 
 
 @router.get("/{library_id}")
