@@ -17,6 +17,29 @@
             const cleanPath = path.startsWith('/') ? path.slice(1) : path;
             return base ? `${base}/${cleanPath}` : `/${cleanPath}`;
         };
+
+        const API_ROUTES = {{ routes(request) | tojson }};
+        /**
+         * Usage: route('api.items.show', { item_id: 123 })
+         */
+        window.route = function(name, params = {}) {
+
+            if (!API_ROUTES[name]) {
+                console.error(`Route name "${name}" not found.`);
+                return '#';
+            }
+
+            let url = API_ROUTES[name];
+
+            // 2. Replace placeholders like {item_id} with actual values
+            for (const key in params) {
+                // simple replace for {key}
+                url = url.replace(`{${key}}`, params[key]);
+            }
+
+            return url;
+        };
+
     </script>
 
     <!-- HTMX -->
@@ -178,7 +201,7 @@
                     // Check immediately on load
                     this.checkStatus();
                     // Then poll every 5 seconds
-                    this.interval = setInterval(() => this.checkStatus(), 5000);
+                    //this.interval = setInterval(() => this.checkStatus(), 5000);
                 },
 
                 async checkStatus() {
