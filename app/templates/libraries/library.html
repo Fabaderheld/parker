@@ -137,7 +137,7 @@ function libraryView() {
             this.loading.series = true;
             try {
                 // Fetch paginated series
-                const url = window.url(`/api/libraries/${this.libraryId}/series?page=${this.currentPage}&size=${this.pageSize}`);
+                const url = window.parker.url(`/api/libraries/${this.libraryId}/series?page=${this.currentPage}&size=${this.pageSize}`);
                 const res = await fetch(url);
                 const data = await res.json();
 
@@ -165,7 +165,7 @@ function libraryView() {
         async triggerScan() {
             if (!confirm("Start scanning this library?")) return;
             try {
-                const res = await fetch(window.url(`/api/libraries/${this.libraryId}/scan`), { method: 'POST' });
+                const res = await fetch(window.parker.url(`/api/libraries/${this.libraryId}/scan`), { method: 'POST' });
                 const data = await res.json();
 
                 // Show Global Spinner (from base.html polling)

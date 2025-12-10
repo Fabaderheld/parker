@@ -617,7 +617,7 @@ function reader() {
                 if(this.contextId) params.append('context_id', this.contextId);
 
                 // Fetch new Init endpoint from comics API
-                const res = await fetch(window.url(`/api/reader/${this.comicId}/read-init?${params.toString()}`));
+                const res = await fetch(window.parker.url(`/api/reader/${this.comicId}/read-init?${params.toString()}`));
 
                 if (!res.ok) {
                     window.showToast('Failed to init reader', 'error')
@@ -628,7 +628,7 @@ function reader() {
                 // If Incognito, DO NOT load previous progress. Start fresh.
                 if (!this.isIncognito) {
                     // Check for saved progress
-                    const progRes = await fetch(window.url(`/api/progress/${this.comicId}`));
+                    const progRes = await fetch(window.parker.url(`/api/progress/${this.comicId}`));
                     const prog = await progRes.json();
 
                     if (prog.has_progress && !prog.completed) {
@@ -686,7 +686,7 @@ function reader() {
             if (index === undefined || index < 0 || index >= this.meta.page_count) return '';
 
             // Points to reader.py endpoint
-            let url = window.url(`/api/reader/${this.comicId}/page/${index}`);
+            let url = window.parker.url(`/api/reader/${this.comicId}/page/${index}`);
 
             // Append Server-Side Filters
             const params = new URLSearchParams();

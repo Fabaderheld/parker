@@ -76,7 +76,7 @@
         <template x-for="(item, index) in items" :key="item.comic_id">
             <div x-on:click="goToIndex(index)" class="cursor-pointer group flex flex-col items-center">
                 <div class="aspect-[2/3] w-full relative rounded-lg overflow-hidden border border-gray-700 group-hover:border-blue-500 transition-all shadow-lg group-hover:scale-105">
-                    <img :src="window.url(item.thumbnail_url)" loading="lazy" class="w-full h-full object-cover">
+                    <img :src="window.parker.url(item.thumbnail_url)" loading="lazy" class="w-full h-full object-cover">
                     <div x-show="index === currentIndex" class="absolute inset-0 border-4 border-blue-500/50"></div>
                 </div>
                 <span class="mt-2 text-xs text-gray-400 text-center truncate w-full" x-text="item.label"></span>
@@ -95,7 +95,7 @@
                 <div class="relative shadow-2xl rounded-sm transition-transform duration-200"
                      :class="doublePage ? 'max-w-[45vw]' : 'max-w-[90vw]'">
 
-                    <img :src="window.url(img.thumbnail_url)"
+                    <img :src="window.parker.url(img.thumbnail_url)"
                          class="absolute inset-0 w-full h-full object-contain blur-sm brightness-50 z-0">
 
                     <img :src="window.parker.route('reader.comic_page', { comic_id: img.comic_id, page_index: 0 })"
