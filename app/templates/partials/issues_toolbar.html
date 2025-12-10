@@ -2,17 +2,17 @@
 
     <div class="flex items-center space-x-1 bg-gray-800 rounded-md p-1 border border-gray-700">
         <button
-            x-on:click="readFilter = 'all'; currentPage = 1; fetchIssues()"
+            x-on:click="$dispatch('set-read-filter', 'all')"
             :class="readFilter === 'all' ? 'bg-gray-600 text-white shadow' : 'text-gray-400 hover:text-gray-200'"
             class="px-3 py-1 text-xs font-medium rounded transition-all"
         >All</button>
         <button
-            x-on:click="readFilter = 'unread'; currentPage = 1; fetchIssues()"
+            x-on:click="$dispatch('set-read-filter', 'unread')"
             :class="readFilter === 'unread' ? 'bg-blue-600 text-white shadow' : 'text-gray-400 hover:text-gray-200'"
             class="px-3 py-1 text-xs font-medium rounded transition-all"
         >Unread Only</button>
         <button
-            x-on:click="readFilter = 'read'; currentPage = 1; fetchIssues()"
+            x-on:click="$dispatch('set-read-filter', 'read')"
             :class="readFilter === 'read' ? 'bg-green-600 text-white shadow' : 'text-gray-400 hover:text-gray-200'"
             class="px-3 py-1 text-xs font-medium rounded transition-all"
         >Read Only</button>
@@ -21,7 +21,7 @@
     <div class="flex items-center gap-2">
         <span class="text-xs text-gray-500 uppercase font-bold">Sort:</span>
         <button
-            @click="toggleSort()"
+            x-on:click="$dispatch('toggle-sort')"
             class="flex items-center gap-2 px-3 py-1.5 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded text-xs font-medium transition-colors text-gray-300"
         >
             <span x-text="sortOrder === 'asc' ? 'Oldest First' : 'Newest First'"></span>

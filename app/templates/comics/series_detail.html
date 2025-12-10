@@ -8,7 +8,7 @@
 {{ page_context(cover.id, cover.color_palette) }}
 
 <div class="relative z-10">
-    <div class="space-y-6" x-data="seriesDetail()">
+    <div class="space-y-6" x-data="seriesDetail()" x-on:set-read-filter="handleReadFilter($event.detail)" x-on:toggle-sort="handleToggleSort()">
 
         <div class="flex items-center space-x-2 text-gray-400 mb-6 text-sm" x-show="!error && !notFound" x-cloak>
             <a :href="window.comicServer.route('pages.library_detail', { library_id: series?.library_id })" class="hover:text-white" x-text="series?.library_name"></a>
@@ -570,6 +570,19 @@ function seriesDetail() {
             } finally {
                 this.gridLoading = false;
             }
+        },
+
+        // Event Listener Handlers (Called via x-on in HTML)
+        handleReadFilter(val) {
+            this.readFilter = val;
+            this.currentPage = 1;
+            this.fetchIssues();
+        },
+
+        handleToggleSort() {
+            this.sortOrder = this.sortOrder === 'asc' ? 'desc' : 'asc';
+            this.currentPage = 1;
+            this.fetchIssues();
         },
 
         changePage(newPage) {
