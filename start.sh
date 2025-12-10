@@ -36,7 +36,7 @@ if [ ! -f ".env" ]; then
 fi
 
 # Create necessary directories
-mkdir -p data cache static templates
+mkdir -p storage/database storage/cache storage/cover storage/avatars storage/logs
 
 echo ""
 echo "✅ Setup complete!"
