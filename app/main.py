@@ -200,6 +200,7 @@ async def general_exception_handler(request: Request, exc: Exception):
 # --- ROUTER REGISTRATION ---
 
 # 1. API Routers (JSON)
+app.include_router(home.router, prefix="/api/home", tags=["home"])
 app.include_router(libraries.router, prefix="/api/libraries", tags=["libraries"])
 app.include_router(series.router, prefix="/api/series", tags=["series"])
 app.include_router(volumes.router, prefix="/api/volumes", tags=["volumes"])
@@ -208,28 +209,31 @@ app.include_router(reader.router, prefix="/api/reader", tags=["reader"])
 app.include_router(reading_lists.router, prefix="/api/reading-lists", tags=["reading-lists"])
 app.include_router(collections.router, prefix="/api/collections", tags=["collections"])
 app.include_router(progress.router, prefix="/api/progress", tags=["progress"])
-app.include_router(jobs.router, prefix="/api/jobs", tags=["jobs"])
+app.include_router(batch.router, prefix="/api/batch", tags=["batch"])
 app.include_router(search.router, prefix="/api/search", tags=["search"])
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 app.include_router(users.router, prefix="/api/users", tags=["users"])
-app.include_router(tasks.router, prefix="/api/tasks", tags=["tasks"])
 app.include_router(settings_api.router, prefix="/api/settings", tags=["settings"])
-app.include_router(stats.router, prefix="/api/stats", tags=["stats"])
 app.include_router(saved_searches.router, prefix="/api/saved-searches", tags=["saved-searches"])
 app.include_router(smart_lists.router, prefix="/api/smart-lists", tags=["smart-lists"])
 app.include_router(pull_lists.router, prefix="/api/pull-lists", tags=["pull-lists"])
-app.include_router(reports.router, prefix="/api/reports", tags=["reports"])
-app.include_router(migration.router, prefix="/api/migration", tags=["migration"])
-app.include_router(batch.router, prefix="/api/batch", tags=["batch"])
-app.include_router(home.router, prefix="/api/home", tags=["home"])
+
+# Pure admin routers
+app.include_router(tasks.router, prefix="/api/tasks", tags=["tasks", "admin"])
+app.include_router(stats.router, prefix="/api/stats", tags=["stats", "admin"])
+app.include_router(reports.router, prefix="/api/reports", tags=["reports", "admin"])
+app.include_router(migration.router, prefix="/api/migration", tags=["migration", "admin"])
+app.include_router(jobs.router, prefix="/api/jobs", tags=["jobs", "admin"])
+
+
 
 # 2. Frontend Routers (HTML)
 # We don't use a prefix for 'pages' because they live at the root (/)
-app.include_router(pages.router)
+app.include_router(pages.router, tags=["pages"])
 
 # 3. Admin Routers (HTML)
 # We add the /admin prefix here so we don't have to type it in every route in admin.py
-app.include_router(admin.router, prefix="/admin")
+app.include_router(admin.router, prefix="/admin", tags=["admin"])
 
 # OPDS Routers
 app.include_router(opds.router)
