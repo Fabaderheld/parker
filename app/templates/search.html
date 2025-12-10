@@ -523,7 +523,7 @@ document.addEventListener('alpine:init', () => {
             console.log("payload", payload);
 
             try {
-                const res = await fetch(window.url('/api/comics/search'), {
+                const res = await fetch(window.comicServer.route('comics.search'), {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify(payload)
