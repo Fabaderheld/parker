@@ -3,6 +3,8 @@ FROM python:3.11-slim
 # Set working directory
 WORKDIR /app
 
+USER root
+
 # Enable non-free repositories to install 'unrar' (Required for CBR support)
 # Debian Bookworm (current stable) uses sources.list.d
 RUN sed -i -e's/ main/ main contrib non-free non-free-firmware/g' /etc/apt/sources.list.d/debian.sources
