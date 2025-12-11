@@ -9,6 +9,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 
+from app.core.settings_loader import get_system_setting
 from app.core.security import get_redirect_url
 from app.core.templates import templates
 from app.database import engine, Base
@@ -51,6 +52,10 @@ async def lifespan(app: FastAPI):
     # Startup
     print(f"Starting {settings.app_name}")
 
+    # Silence the Uvicorn access logger (GET /api/...)
+    # Only show warnings or errors from the server itself
+    logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
+
     # Ensure directories exist
     settings.log_dir.mkdir(parents=True, exist_ok=True)
     Path("storage/database").mkdir(parents=True, exist_ok=True)
@@ -58,12 +63,8 @@ async def lifespan(app: FastAPI):
     settings.cover_dir.mkdir(parents=True, exist_ok=True)
     settings.avatar_dir.mkdir(parents=True, exist_ok=True)
 
-    # Create database tables (models are now imported)
-    # DEV use only, and we have migrations now
-    #Base.metadata.create_all(bind=engine)
 
-
-    # --- NEW: Auto-Create Default Admin and initialize settings  ---
+    # ---Auto-Create Default Admin and initialize settings  ---
     db = SessionLocal()
     try:
 
@@ -88,10 +89,13 @@ async def lifespan(app: FastAPI):
         db.close()
     # --------------------------------------
 
-    # Setup logging
-    log_level = "info" #await get_log_level_from_db() # TODO
-    logger = log_config.setup_logging("INFO")
-    logger.info("Application starting up")
+    # --- SETUP LOGGING (Dynamic) ---
+    # Fetch from DB (defaults to "INFO" if the setting is missing)
+    # We use the loader because it is safe to call before the app is fully running.
+    log_level = get_system_setting("general.log_level", "INFO")
+    logger = log_config.setup_logging(log_level)
+
+    logger.info(f"Application starting up (Log Level: {log_level})")
 
     # START WATCHER
     library_watcher.start()
@@ -99,14 +103,14 @@ async def lifespan(app: FastAPI):
     # START SCHEDULER
     scheduler_service.start()
 
-
     logger.info("Comic Server starting up...")
     logger.info("Frontend available at http://localhost:8000")
+    logger.info("Administration available at http://localhost:8000/admin")
     logger.info("API docs available at http://localhost:8000/docs")
 
     yield
+
     # Shutdown
-    logger.info("Comic Server shutting down...")
 
     # STOP WATCHER
     library_watcher.stop()
@@ -114,8 +118,9 @@ async def lifespan(app: FastAPI):
     # STOP SCHEDULER
     scheduler_service.stop()
 
-    print("Shutting down")
+    logger.info("Parker shutting down...")
 
+    print("Parker shutting down")
 
 app = FastAPI(
     title=settings.app_name,
