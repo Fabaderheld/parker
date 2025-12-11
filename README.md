@@ -45,8 +45,6 @@ Parker is a self‑hosted media server for comic books (CBZ/CBR). It follows a *
     - On an 8‑core i7, 3,541 comics dropped from 13m40s → 1m58s
     - Fully opt‑in via Settings; 0 = auto (use all cores), values above CPU count are clamped
 
-
-
 - **Visuals**
   - Dynamic backgrounds from cover colors
   - Cover Browser gallery mode
@@ -114,6 +112,7 @@ Parker is a self‑hosted media server for comic books (CBZ/CBR). It follows a *
 
 
 ## 📌 Roadmap
+- Documentation
 - Expanded OPDS support
 - Localization
 - Enhanced WebP transcoding pipeline
