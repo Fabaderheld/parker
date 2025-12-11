@@ -351,7 +351,7 @@ document.addEventListener('alpine:init', () => {
             }
             try {
                 // Call our API
-                const res = await fetch(window.parker.url(`/api/search/suggestions?field=${rule.field}&query=${this.input}`));
+                const res = await fetch(window.parker.route('search.suggestions', {}, `field=${rule.field}&query=${this.input}`));
                 this.suggestions = await res.json();
             } catch(e) { console.error(e); }
         },
@@ -545,8 +545,8 @@ document.addEventListener('alpine:init', () => {
             try {
 
                 const [savedRes, smartRes] = await Promise.all([
-                    fetch(window.parker.url('/api/saved-searches/')),
-                    fetch(window.parker.url('/api/smart-lists/'))
+                    fetch(window.parker.route('saved_searches.list')),
+                    fetch(window.parker.route('smart_lists.list'))
                 ]);
 
                 if (savedRes.ok) this.savedSearches = await savedRes.json();
@@ -579,7 +579,7 @@ document.addEventListener('alpine:init', () => {
             };
 
             try {
-                const res = await fetch(window.parker.url('/api/saved-searches/'), {
+                const res = await fetch(window.parker.route('saved_searches.create'), {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify(payload)
@@ -597,7 +597,7 @@ document.addEventListener('alpine:init', () => {
 
         async deleteSearch(id) {
             if(!confirm("Delete this saved search?")) return;
-            await fetch(window.parker.url(`/api/saved-searches/${id}`), { method: 'DELETE' });
+            await fetch(window.parker.route('saved_searches.delete', { search_id: id }), { method: 'DELETE' });
             await this.loadSavedList(); // Refresh list
             window.parker.showToast("Saved Search deleted", "success");
         },
@@ -686,7 +686,7 @@ document.addEventListener('alpine:init', () => {
 
                 if(this.loadedListId === null) {
                     // Create
-                    const res = await fetch(window.parker.url('/api/smart-lists/'), {
+                    const res = await fetch(window.parker.route('smart_lists.create'), {
                         method: 'POST',
                         headers: {'Content-Type': 'application/json'},
                         body: JSON.stringify(payload)
@@ -702,7 +702,7 @@ document.addEventListener('alpine:init', () => {
 
                 } else {
                     // Update
-                    const res = await fetch(window.parker.url(`/api/smart-lists/${this.loadedListId}`), {
+                    const res = await fetch(window.parker.route('smart_lists.update', { list_id: this.loadedListId }), {
                         method: 'PATCH',
                         headers: {'Content-Type': 'application/json'},
                         body: JSON.stringify(payload)
@@ -724,7 +724,7 @@ document.addEventListener('alpine:init', () => {
         // Helper to get name (Optional polish)
         async fetchLibraryName(id) {
             try {
-                const res = await fetch(window.parker.url(`/api/libraries/${id}`));
+                const res = await fetch(window.parker.route('libraries.detail', { library_id: id }));
                 if(res.ok) {
                     const lib = await res.json();
                     this.contextLibraryName = lib.name;
