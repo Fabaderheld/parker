@@ -33,7 +33,7 @@ async def get_active_job(db: SessionDep):
     }
 
 
-@router.get("", name="list")
+@router.get("", name="list", tags=["admin"])
 async def list_jobs(
     admin_user: AdminUser,
     db: SessionDep,
@@ -70,7 +70,7 @@ async def list_jobs(
     return results
 
 
-@router.get("/{job_id}", name="detail")
+@router.get("/{job_id}", name="detail", tags=["admin"])
 async def get_job_details(job_id: int, db: SessionDep, admin_user: AdminUser):
     """
     Get detailed status of a specific job.

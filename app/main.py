@@ -208,13 +208,14 @@ app.include_router(settings_api.router, prefix="/api/settings", tags=["settings"
 app.include_router(saved_searches.router, prefix="/api/saved-searches", tags=["saved-searches"])
 app.include_router(smart_lists.router, prefix="/api/smart-lists", tags=["smart-lists"])
 app.include_router(pull_lists.router, prefix="/api/pull-lists", tags=["pull-lists"])
+app.include_router(jobs.router, prefix="/api/jobs", tags=["jobs"])
 
 # Pure admin routers
 app.include_router(tasks.router, prefix="/api/tasks", tags=["tasks", "admin"])
 app.include_router(stats.router, prefix="/api/stats", tags=["stats", "admin"])
 app.include_router(reports.router, prefix="/api/reports", tags=["reports", "admin"])
 app.include_router(migration.router, prefix="/api/migration", tags=["migration", "admin"])
-app.include_router(jobs.router, prefix="/api/jobs", tags=["jobs", "admin"])
+
 
 
 
