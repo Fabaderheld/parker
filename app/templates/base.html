@@ -173,7 +173,7 @@
 
                 async checkStatus() {
                     try {
-                        const response = await fetch(window.parker.url('/api/jobs/active'));
+                        const response = await fetch(window.parker.route('jobs.active'));
                         const data = await response.json();
 
                         if (data.active) {
