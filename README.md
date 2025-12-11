@@ -38,6 +38,14 @@ Parker is a self‑hosted media server for comic books (CBZ/CBR). It follows a *
   - Background ScanManager with priority queues
   - Timestamp bubbling for updated series
   - Physical page count validation
+  - ⚡ Parallel Thumbnail Generation (Optional)
+    - Multiprocessing pipeline for thumbnails
+    - Distributes image decoding, resizing, WebP encoding, and palette extraction across CPU cores
+    - Dedicated writer process batches SQLite commits safely
+    - On an 8‑core i7, 3,541 comics dropped from 13m40s → 1m58s
+    - Fully opt‑in via Settings; 0 = auto (use all cores), values above CPU count are clamped
+
+
 
 - **Visuals**
   - Dynamic backgrounds from cover colors
