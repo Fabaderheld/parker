@@ -114,6 +114,7 @@ Parker is a self‑hosted media server for comic books (CBZ/CBR). It follows a *
 
 ## 📌 Roadmap
 - Documentation
+- Remaining UI polish (remove the remaining native JS dialogs with custom modals)
 - Expanded OPDS support
 - Localization
 - Enhanced WebP transcoding pipeline
