@@ -23,8 +23,7 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 30
 
     # Paths
-    unrar_path: str = r"C:\Program Files\WinRAR\UnRAR.exe"
-    #unrar_path: str = "unrar"
+    unrar_path: str = "unrar"
 
     # Storage paths
     log_dir: Path = Path("storage/logs")
@@ -32,7 +31,6 @@ class Settings(BaseSettings):
     cover_dir: Path = Path("storage/cover")
     backup_dir: Path = Path("storage/backup")
     avatar_dir: Path = Path("storage/avatars")
-    #thumbnail_size: tuple = (300, 450)
     thumbnail_size: tuple[float, float] = (320, 455)
     avatar_size: tuple[float, float] = (400, 400)  # standard avatar box
 
