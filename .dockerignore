@@ -1,0 +1,9 @@
+storage/cover
+storage/cache
+storage/database
+storage/logs
+storage/avatars
+.env
+.git
+__pycache__
+*.pyc
