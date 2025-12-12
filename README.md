@@ -107,7 +107,7 @@ Parker is a self‑hosted media server for comic books (CBZ/CBR). It follows a *
   ```bash
   docker run -d \
     -p 8000:8000 \
-    ghcr.io/<your-org>/parker:latest
+    ghcr.io/parker-server/parker:latest
   ```
 
 **or**
