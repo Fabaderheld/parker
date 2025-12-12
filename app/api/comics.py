@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import Response, FileResponse
 from sqlalchemy import Float, func
+from sqlalchemy.orm import joinedload
 from typing import List, Annotated, Literal
 from pathlib import Path
 import re
@@ -12,10 +13,12 @@ from app.api.deps import SessionDep, CurrentUser, ComicDep
 from app.models.comic import Comic, Volume
 from app.models.series import Series
 from app.models.library import Library
+from app.models.credits import Person, ComicCredit
 from app.models.reading_list import ReadingList, ReadingListItem
 from app.models.collection import Collection, CollectionItem
 from app.models.pull_list import PullList, PullListItem
 from app.models.reading_progress import ReadingProgress
+from app.models.tags import Character, Team, Location, Genre
 
 from app.schemas.search import SearchRequest, SearchResponse
 from app.services.search import SearchService
@@ -66,14 +69,37 @@ async def search_comics(request: SearchRequest, db: SessionDep, current_user: Cu
     return results
 
 @router.get("/{comic_id}", name="detail")
-async def get_comic(comic: ComicDep, db: SessionDep, current_user: CurrentUser):
-    """Get a specific comic with all metadata"""
+async def get_comic(comic_id: int, db: SessionDep, current_user: CurrentUser):
+    """
+    Get a specific comic with all metadata.
+    OPTIMIZED: Uses joinedload to fetch all metadata (credits, tags, hierarchy) in 1 query.
+    """
+
+    # 1. Fetch Comic with all relationships eagerly loaded
+    comic = db.query(Comic).options(
+        joinedload(Comic.volume).joinedload(Volume.series).joinedload(Series.library),
+        joinedload(Comic.credits).joinedload(ComicCredit.person),
+        joinedload(Comic.characters),
+        joinedload(Comic.teams),
+        joinedload(Comic.locations),
+        joinedload(Comic.genres)
+    ).filter(Comic.id == comic_id).first()
+
+    if not comic:
+        raise HTTPException(status_code=404, detail="Comic not found")
+
+    # 2. Security Check (Manual RLS since we aren't using the dependency)
+    if not current_user.is_superuser:
+        allowed_libs = {l.id for l in current_user.accessible_libraries}
+        if comic.volume.series.library_id not in allowed_libs:
+            raise HTTPException(status_code=404, detail="Comic not found")
 
     # Calculate Reading Time
     total_pages = comic.page_count or 0
     read_time = get_reading_time(total_pages)
 
     # Build credits dictionary by role
+    # This loop is now safe (in-memory) because we eager loaded credits+persons
     credits = {}
     for credit in comic.credits:
         if credit.role not in credits:
@@ -81,6 +107,7 @@ async def get_comic(comic: ComicDep, db: SessionDep, current_user: CurrentUser):
         credits[credit.role].append(credit.person.name)
 
     # Check Progress
+    # This is the ONLY secondary query (needed to get specific user state)
     read_status = "new"
     progress = db.query(ReadingProgress).filter(
         ReadingProgress.comic_id == comic.id,
@@ -96,7 +123,6 @@ async def get_comic(comic: ComicDep, db: SessionDep, current_user: CurrentUser):
         "filename": comic.filename,
         "file_path": comic.file_path,
         "file_size": comic.file_size,
-        #"thumbnail_path": comic.thumbnail_path,
 
         # Library info
         "library_id": comic.volume.series.library_id,
@@ -136,7 +162,7 @@ async def get_comic(comic: ComicDep, db: SessionDep, current_user: CurrentUser):
         "language_iso": comic.language_iso,
         "community_rating": comic.community_rating,
 
-        # Tags (from relationships)
+        # Tags (Accessing these is now O(1) in-memory)
         "characters": [c.name for c in comic.characters],
         "teams": [t.name for t in comic.teams],
         "locations": [l.name for l in comic.locations],
@@ -166,7 +192,7 @@ async def get_comic_thumbnail(
 ):
     """
         Get the thumbnail for a comic (public)
-        Serves from storage/cover. Regenerates if missing.
+    Serves from storage/cover. Regenerates if missing.
         Self-healing: Generates file if missing, but DOES NOT write to DB
         to avoid locking issues during parallel loading.
     """
@@ -247,9 +273,14 @@ async def get_cover_manifest(
     """
 
     # 1. Base Query
-    # We use .select_from(Comic) to establish Comic as the "Left Side" anchor.
-    # We join Volume and Series immediately because we need Series.library_id for security.
-    query = db.query(Comic.id, Comic.title, Comic.number, Volume.volume_number, Series.name) \
+    # OPTIMIZED: Uses explicit labels to ensure 'Series Name' and 'Comic Title' don't collide.
+    query = db.query(
+        Comic.id,
+        Comic.title,
+        Comic.number,
+        Volume.volume_number,
+        Series.name.label("series_name")
+    ) \
         .select_from(Comic) \
         .join(Volume) \
         .join(Series)
@@ -294,8 +325,9 @@ async def get_cover_manifest(
         "items": [
             {
                 "comic_id": r.id,
-                "label": f"{r.name} #{r.number}",
-                "thumbnail_url": f"/api/comics/{r.id}/thumbnail"  # Consider using relative path helper if implemented
+                # Explicitly use the labeled series name
+                "label": f"{r.series_name} #{r.number}",
+                "thumbnail_url": f"/api/comics/{r.id}/thumbnail"
             }
             for r in items
         ]

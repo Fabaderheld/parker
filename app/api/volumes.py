@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import func, case, Float, Integer
+from sqlalchemy import func, case, Float, Integer, literal
 from sqlalchemy.orm import joinedload
 
 from typing import List, Annotated
@@ -35,6 +35,7 @@ def comic_to_simple_dict(comic: Comic):
 async def get_volume_detail(volume: VolumeDep, db: SessionDep, current_user: CurrentUser):
     """
     Get volume summary with categorized counts.
+    OPTIMIZED: Uses UNION ALL to fetch all metadata lists (writers, characters, etc) in 1 query.
     """
 
     # Filters
@@ -113,7 +114,7 @@ async def get_volume_detail(volume: VolumeDep, db: SessionDep, current_user: Cur
     elif first_issue:
         resume_comic_id = first_issue.id
 
-    # Status & Missing Issues Calculation
+    # 5. Status & Missing Issues Logic
     status = "ongoing"
     missing_issues = []
     is_completed = False
@@ -162,9 +163,6 @@ async def get_volume_detail(volume: VolumeDep, db: SessionDep, current_user: Cur
             # Example: Count 4 becomes {1, 2, 3, 4}
             expected_set = set(range(1, expected_count + 1))
 
-
-        #expected_set = set(range(1, expected_count + 1))
-
         # Find the difference
         missing_set = expected_set - existing_set
 
@@ -174,22 +172,55 @@ async def get_volume_detail(volume: VolumeDep, db: SessionDep, current_user: Cur
             # Sort the missing numbers for display (e.g., [2, 3, 4])
             missing_issues = sorted(list(missing_set))
 
+    # 6. Aggregated Metadata (OPTIMIZED)
+    # Instead of 5 separate queries, we construct a UNION ALL to get everything in 1 round trip.
 
-    # 3. Aggregated Metadata (Scoped ONLY to this volume)
-    writers = db.query(Person.name).join(ComicCredit).join(Comic) \
-        .filter(Comic.volume_id == volume.id).filter(ComicCredit.role == 'writer').distinct().all()
+    # Define sub-selectors
+    # Note: literal() allows us to tag the rows so we can sort them in Python
+    q_writers = db.query(Person.name.label("name"), literal("writer").label("type")) \
+        .join(ComicCredit).join(Comic).filter(Comic.volume_id == volume.id).filter(ComicCredit.role == 'writer')
 
-    pencillers = db.query(Person.name).join(ComicCredit).join(Comic) \
-        .filter(Comic.volume_id == volume.id).filter(ComicCredit.role == 'penciller').distinct().all()
+    q_pencillers = db.query(Person.name.label("name"), literal("penciller").label("type")) \
+        .join(ComicCredit).join(Comic).filter(Comic.volume_id == volume.id).filter(ComicCredit.role == 'penciller')
 
-    characters = db.query(Character.name).join(Comic.characters) \
-        .filter(Comic.volume_id == volume.id).distinct().all()
+    q_chars = db.query(Character.name.label("name"), literal("character").label("type")) \
+        .join(Comic.characters).filter(Comic.volume_id == volume.id)
 
-    teams = db.query(Team.name).join(Comic.teams) \
-        .filter(Comic.volume_id == volume.id).distinct().all()
+    q_teams = db.query(Team.name.label("name"), literal("team").label("type")) \
+        .join(Comic.teams).filter(Comic.volume_id == volume.id)
 
-    locations = db.query(Location.name).join(Comic.locations) \
-        .filter(Comic.volume_id == volume.id).distinct().all()
+    q_locs = db.query(Location.name.label("name"), literal("location").label("type")) \
+        .join(Comic.locations).filter(Comic.volume_id == volume.id)
+
+    # Union and execute
+    # distinct() handles duplicates within the union logic
+    meta_rows = q_writers.union_all(q_pencillers, q_chars, q_teams, q_locs).distinct().all()
+
+    # Buckets
+    details = {
+        "writers": [],
+        "pencillers": [],
+        "characters": [],
+        "teams": [],
+        "locations": []
+    }
+
+    # Python sort/group
+    for name, type_tag in meta_rows:
+        if type_tag == "writer":
+            details["writers"].append(name)
+        elif type_tag == "penciller":
+            details["pencillers"].append(name)
+        elif type_tag == "character":
+            details["characters"].append(name)
+        elif type_tag == "team":
+            details["teams"].append(name)
+        elif type_tag == "location":
+            details["locations"].append(name)
+
+    # Final sort
+    for k in details:
+        details[k].sort()
 
     return {
         "id": volume.id,
@@ -220,19 +251,14 @@ async def get_volume_detail(volume: VolumeDep, db: SessionDep, current_user: Cur
         "end_year": stats.end_year,
         "first_issue_id": first_issue.id if first_issue else None,
         "story_arcs": story_arcs_data,
-        "details": {
-            "writers": sorted([r[0] for r in writers]),
-            "pencillers": sorted([r[0] for r in pencillers]),
-            "characters": sorted([r[0] for r in characters]),
-            "teams": sorted([r[0] for r in teams]),
-            "locations": sorted([r[0] for r in locations])
-        },
+        "details": details,
         "resume_to": {
             "comic_id": resume_comic_id,
             "status": read_status
         },
         "colors": colors,
     }
+
 
 @router.get("/{volume_id}/issues", response_model=PaginatedResponse, name="issues")
 async def get_volume_issues(
@@ -245,7 +271,8 @@ async def get_volume_issues(
         sort_order: Annotated[str, Query(pattern="^(asc|desc)$")] = "asc"
 ):
     """
-    Get paginated issues for a specific volume, filtered by type and read status with sort option
+    Get paginated issues for a specific volume.
+    OPTIMIZED: Eager loads Comic.volume to prevent N+1 in serializer.
     """
 
     # Verify Volume Access First
@@ -260,10 +287,12 @@ async def get_volume_issues(
         raise HTTPException(status_code=404, detail="Volume not found")
 
     # Select Comic AND the completed status
+    # OPTIMIZATION: joinedload(Comic.volume) prevents N+1 when accessing volume_number
     query = db.query(Comic, ReadingProgress.completed).outerjoin(
         ReadingProgress,
         (ReadingProgress.comic_id == Comic.id) & (ReadingProgress.user_id == current_user.id)
-    ).filter(Comic.volume_id == volume_id)
+    ).options(joinedload(Comic.volume)) \
+        .filter(Comic.volume_id == volume_id)
 
 
     is_plain, is_annual, is_special = get_format_filters()
@@ -304,6 +333,7 @@ async def get_volume_issues(
     # Unpack the tuple (Comic, completed)
     items = []
     for comic, is_completed in comics:
+        # Now efficient because comic.volume is loaded
         data = comic_to_simple_dict(comic)
         # If is_completed is None (no record) or False, it's unread
         data['read'] = True if is_completed else False

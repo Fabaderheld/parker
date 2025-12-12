@@ -54,24 +54,55 @@ def get_random_gems(
     Get random Series. Great for 'Spin the Wheel' discovery.
     """
     # 1. Query Random Series
-    # Optimization Op: Filter out empty series if necessary
     random_series = db.query(Series) \
         .order_by(func.random()) \
         .limit(limit) \
         .all()
 
+    if not random_series:
+        return []
+
+    # 2. Batch Fetch Covers
+    # Instead of looping and querying, we grab the first comic for all these series at once.
+    series_ids = [s.id for s in random_series]
+
+    # Subquery: Rank comics by number within each series (Partition by Series, Order by Number)
+    # This assigns 'rn=1' to the first issue of every series.
+    subquery = (
+        db.query(
+            Comic.id,
+            func.row_number().over(
+                partition_by=Volume.series_id,
+                order_by=cast(Comic.number, Float).asc()
+            ).label("rn")
+        )
+        .join(Volume)
+        .filter(Volume.series_id.in_(series_ids))
+        .subquery()
+    )
+
+    # Main Query: Join against the subquery and keep only the #1s
+    covers = db.query(Comic) \
+        .join(subquery, Comic.id == subquery.c.id) \
+        .filter(subquery.c.rn == 1) \
+        .all()
+
+    # Map series_id -> cover_comic
+    # (We need to access volume.series_id, so ensure it's loaded or accessed via cover.volume_id map)
+    cover_map = {}
+    for c in covers:
+        # We know the volume is loaded because we joined it in the subquery logic,
+        # but to be safe with ORM objects:
+        if c.volume:
+            cover_map[c.volume.series_id] = c
+
+
     results = []
     for s in random_series:
 
-        # 2. Build the query for comics in this series
-        # We join Volume because Comic -> Volume -> Series
-        base_query = db.query(Comic).join(Volume).filter(Volume.series_id == s.id)
+        first_issue = cover_map.get(s.id)
 
-        # 3. Use the helper to find the best cover (e.g. Issue #1)
-        # This matches the logic in libraries.py and series.py
-        first_issue = get_smart_cover(base_query)
-
-        # Skip if the series is somehow empty
+        # Fallback: If logic missed (e.g. empty series), skip
         if not first_issue:
             continue
 
@@ -97,8 +128,10 @@ def get_top_rated(
 ):
     """
     Get issues with High Community Rating (4.0+).
+    Eager loads relationships to avoid N+1.
     """
     gems = db.query(Comic) \
+        .options(joinedload(Comic.volume).joinedload(Volume.series)) \
         .filter(Comic.community_rating >= 4.0) \
         .order_by(desc(Comic.community_rating)) \
         .limit(limit) \
@@ -157,9 +190,10 @@ def get_up_next(
         cutoff_date = datetime.now(timezone.utc) - timedelta(weeks=staleness_weeks)
 
     # 2. Get recently completed comics
+    # Eager load Series/Volume here so we don't query them later in the loop
     history_query = db.query(ReadingProgress) \
-        .join(Comic) \
-        .options(joinedload(ReadingProgress.comic).joinedload(Comic.volume)) \
+        .join(Comic).join(Volume).join(Series) \
+        .options(joinedload(ReadingProgress.comic).joinedload(Comic.volume).joinedload(Volume.series)) \
         .filter(
         ReadingProgress.user_id == current_user.id,
         ReadingProgress.completed == True
@@ -174,17 +208,25 @@ def get_up_next(
         .limit(50) \
         .all()
 
-    # ... (Keep the rest of the 'Next Issue' logic: seen_series, finding next number, etc.) ...
+    # Pre-fetch "Read" status
+    # Instead of querying the DB 50 times to see if we read the *next* book,
+    # we load all completed comic IDs for this user into memory once.
+    read_comic_ids = set(
+        row[0] for row in db.query(ReadingProgress.comic_id)
+        .filter(ReadingProgress.user_id == current_user.id, ReadingProgress.completed == True)
+        .all()
+    )
 
     seen_series = set()
     results = []
 
     for progress in recent_history:
-        # ... logic to find next comic ...
-        # (Same as previous step)
+        # Access via eager loaded relationship (no query)
         series_id = progress.comic.volume.series_id
+
         if series_id in seen_series:
             continue
+
         seen_series.add(series_id)
 
         try:
@@ -192,7 +234,11 @@ def get_up_next(
         except (ValueError, TypeError):
             continue
 
+        # Find the next comic
+        # We're still going to run 1 query here per series, but it's very fast on SQLite
+        # because it's a simple indexed lookup on (volume_id, number).
         next_comic = db.query(Comic) \
+            .options(joinedload(Comic.volume).joinedload(Volume.series)) \
             .filter(
             Comic.volume_id == progress.comic.volume_id,
             cast(Comic.number, Float) > current_number
@@ -201,17 +247,8 @@ def get_up_next(
             .first()
 
         if next_comic:
-            is_already_read = db.query(ReadingProgress).filter(
-                ReadingProgress.user_id == current_user.id,
-                ReadingProgress.comic_id == next_comic.id,
-                ReadingProgress.completed == True
-            ).first()
-
-            if not is_already_read:
-                # Manually populate series name to avoid validation error if lazy loading misses it
-                if not next_comic.volume.series:
-                    # Force load if needed, or rely on Session identity map
-                    pass
+            # Check memory set instead of DB
+            if next_comic.id not in read_comic_ids:
                 results.append(format_home_item(next_comic))
 
         if len(results) >= limit:
@@ -229,34 +266,59 @@ def get_popular(
     Get 'Trending' Series based on other users' reading activity.
     Respects the 'share_progress_enabled' privacy setting.
     """
+
     # 1. Aggregation Query
     # Find Series with the most DISTINCT users reading them (excluding me)
-    # Only count users who have opted-in to sharing
     popular_series = (
         db.query(Series)
         .join(Volume).join(Comic).join(ReadingProgress)
         .join(User)
         .filter(User.share_progress_enabled == True)
-        .filter(ReadingProgress.user_id != current_user.id)  # Don't just show me my own stuff
+        .filter(ReadingProgress.user_id != current_user.id)
         .group_by(Series.id)
         .order_by(func.count(ReadingProgress.user_id.distinct()).desc())
         .limit(limit)
         .all()
     )
 
-    # --- GUARD: Minimum Threshold ---
-    # Don't show the rail if we have fewer than 4 items.
-    # This prevents a poor quality rail with just 1 or 2 items.
+    # Guard: Minimum Threshold (User UX preference)
     if len(popular_series) < 4:
         return []
 
-    # 2. Format Results (Match get_random_gems format for Series Cards)
+    # 2. Batch Fetch Covers (SQLite Compatible)
+    series_ids = [s.id for s in popular_series]
+
+    # Subquery: Rank comics by number within each series (Partition by Series, Order by Number)
+    subquery = (
+        db.query(
+            Comic.id,
+            func.row_number().over(
+                partition_by=Volume.series_id,
+                order_by=cast(Comic.number, Float).asc()
+            ).label("rn")
+        )
+        .join(Volume)
+        .filter(Volume.series_id.in_(series_ids))
+        .subquery()
+    )
+
+    # Main Query: Join against the subquery and keep only the #1s
+    covers = db.query(Comic) \
+        .join(subquery, Comic.id == subquery.c.id) \
+        .filter(subquery.c.rn == 1) \
+        .options(joinedload(Comic.volume)) \
+        .all()
+
+    # Map series_id -> cover_comic
+    cover_map = {}
+    for c in covers:
+        if c.volume:
+            cover_map[c.volume.series_id] = c
+
+    # 3. Format Results
     results = []
     for s in popular_series:
-
-        # Reuse smart cover logic
-        base_query = db.query(Comic).join(Volume).filter(Volume.series_id == s.id)
-        first_issue = get_smart_cover(base_query)
+        first_issue = cover_map.get(s.id)
 
         if not first_issue:
             continue
@@ -268,7 +330,6 @@ def get_popular(
             "thumbnail_path": f"/api/comics/{first_issue.id}/thumbnail",
             "publisher": first_issue.publisher,
             "volume_count": len(s.volumes) if s.volumes else 0,
-            # We don't calculate 'read' status here as it's a discovery rail
             "starred": False
         })
 

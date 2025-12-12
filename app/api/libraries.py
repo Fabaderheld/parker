@@ -90,6 +90,7 @@ async def get_library_series(
     """
     Get all Series within a specific Library (Paginated).
     Sorts alphabetically ignoring 'The ' prefix.
+    Optimized to avoid N+1 queries by pre-fetching comic data in batch.
     """
 
     # 1. Filter by Library
@@ -106,39 +107,96 @@ async def get_library_series(
         else_=Series.name
     )
 
-
-    #series_list = query.order_by(Series.name).offset(params.skip).limit(params.size).all()
     series_list = query.order_by(sort_key).offset(params.skip).limit(params.size).all()
+    if not series_list:
+        return {"total": total, "page": params.page, "size": params.size, "items": []}
+
+    # --- BATCH OPTIMIZATION START ---
+
+    # A. Collect Series IDs for this page
+    series_ids = [s.id for s in series_list]
+
+    # B. Fetch ALL Comics for these series in one go (Lightweight columns only)
+    # We need: id, number, year (for cover selection) and volume.series_id (for grouping)
+    # This replaces the 50 'get_smart_cover' queries + 50 'count' queries
+    raw_comics = (
+        db.query(
+            Comic.id,
+            Comic.number,
+            Comic.year,
+            Volume.series_id
+        )
+        .join(Volume)
+        .filter(Volume.series_id.in_(series_ids))
+        .all()
+    )
+
+    # C. Fetch Progress for these comics in one go
+    # Only fetch 'completed' entries for the current user
+    comic_ids = [c.id for c in raw_comics]
+    read_comic_ids = set()
+    if comic_ids:
+        progress_rows = (
+            db.query(ReadingProgress.comic_id)
+            .filter(
+                ReadingProgress.user_id == current_user.id,
+                ReadingProgress.completed == True,
+                ReadingProgress.comic_id.in_(comic_ids)
+            )
+            .all()
+        )
+        read_comic_ids = {r.comic_id for r in progress_rows}
+
+    # D. Group Comics by Series in Python
+    from collections import defaultdict
+    series_map = defaultdict(list)
+    for row in raw_comics:
+        series_map[row.series_id].append(row)
+
+    # --- BATCH OPTIMIZATION END ---
+
+
 
     # 3. Serialization & Thumbnails
     items = []
     for s in series_list:
+
+        s_comics = series_map.get(s.id, [])
+
+        # Logic: Calculate Read Status
+        total_count = len(s_comics)
+        read_count = sum(1 for c in s_comics if c.id in read_comic_ids)
+        is_fully_read = (total_count > 0) and (read_count >= total_count)
+
         # Find a cover (First issue of first volume)
-        base_query = db.query(Comic).join(Volume).filter(Volume.series_id == s.id)
-        first_issue = get_smart_cover(base_query)
+        # Logic: Find Smart Cover (Python version of get_smart_cover)
+        # 1. Look for Issue "1"
+        # 2. Else look for lowest number
+        # 3. Else first found
+        cover_comic = None
+        if s_comics:
+            # Try finding issue #1 exactly
+            issue_ones = [c for c in s_comics if c.number == '1']
+            if issue_ones:
+                cover_comic = issue_ones[0]
+            else:
+                # Fallback: Sort by number (safely converting to float)
+                def safe_sort(c):
+                    try:
+                        return float(c.number)
+                    except:
+                        return 999999
 
-        # OPTIMIZED READ CHECK (Single Query)
-        # We count total comics AND read comics in one DB trip using conditional aggregation.
-        # This is significantly faster on low-end hardware than running two separate count() queries.
-        counts = db.query(
-            func.count(Comic.id).label('total'),
-            func.count(case((ReadingProgress.completed == True, 1))).label('read')
-        ).select_from(Comic).outerjoin(
-            ReadingProgress,
-            (ReadingProgress.comic_id == Comic.id) & (ReadingProgress.user_id == current_user.id)
-        ).join(Volume).filter(Volume.series_id == s.id).first()
-
-        # Logic: It is "Read" only if you own items AND you have read all of them.
-        is_fully_read = (counts.total > 0) and (counts.read >= counts.total)
+                s_comics.sort(key=safe_sort)
+                cover_comic = s_comics[0]
 
         items.append({
             "id": s.id,
             "name": s.name,
             "library_id": s.library_id,
-            "start_year": first_issue.year,
-            # Use getattr to be safe if you haven't migrated DB for timestamps yet
+            "start_year": cover_comic.year if cover_comic else None,
             "created_at": getattr(s, 'created_at', None),
-            "thumbnail_path": f"/api/comics/{first_issue.id}/thumbnail" if first_issue else None,
+            "thumbnail_path": f"/api/comics/{cover_comic.id}/thumbnail" if cover_comic else None,
             "read": is_fully_read,
         })
 
