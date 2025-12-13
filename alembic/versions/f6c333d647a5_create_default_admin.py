@@ -39,8 +39,8 @@ def upgrade() -> None:
         conn.execute(
             users.insert().values(
                 username="admin",
-                password=bcrypt.hash("admin"),
-                is_admin=True
+                hashed_password=bcrypt.hash("admin"),
+                is_superuser=True
             )
         )
 
