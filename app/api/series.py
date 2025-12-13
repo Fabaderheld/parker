@@ -3,8 +3,9 @@ from sqlalchemy import func, case, Float, and_, literal
 from sqlalchemy.orm import joinedload, aliased
 from typing import List, Optional, Annotated
 from datetime import datetime, timezone
+from collections import defaultdict
 
-from app.core.comic_helpers import get_format_filters, get_smart_cover, get_reading_time
+from app.core.comic_helpers import get_format_filters, get_smart_cover, get_reading_time, NON_PLAIN_FORMATS
 from app.api.deps import SessionDep, CurrentUser, AdminUser, SeriesDep
 from app.api.deps import PaginationParams, PaginatedResponse
 
@@ -212,24 +213,54 @@ async def get_series_detail(series: SeriesDep, db: SessionDep, current_user: Cur
     vol_stats_map = {row.volume_id: row for row in vol_stats}
 
     # B. Volume Covers (First Issue per Volume)
-    # Using the same Window Function trick
-    vol_subquery = (
-        db.query(Comic.id, Comic.volume_id, func.row_number().over(partition_by=Comic.volume_id,
-                                                                   order_by=func.cast(Comic.number, Float).asc()).label(
-            "rn"))
-        .filter(Comic.volume_id.in_(volume_ids)).subquery()
-    )
-    vol_covers = db.query(vol_subquery).filter(vol_subquery.c.rn == 1).all()
-    vol_cover_map = {row.volume_id: row.id for row in vol_covers}
+    # Fetch ALL comics meta for smart selection (Lightweight query)
+    all_comics_meta = (db.query(Comic.id, Comic.volume_id, Comic.number, Comic.format)
+                       .filter(Comic.volume_id.in_(volume_ids)).all())
+
+    # Group by Volume
+    volume_comics_map = defaultdict(list)
+    for c in all_comics_meta:
+        volume_comics_map[c.volume_id].append(c)
+
+    # Helper: Check Format
+    def is_standard_format(fmt: str) -> bool:
+        if not fmt: return True
+        f = fmt.lower()
+        return f not in NON_PLAIN_FORMATS
+
+    def issue_sort_key(c):
+        try:
+            return float(c.number)
+        except:
+            return 999999
 
     volumes_data = []
     for vol in volumes:
         stat = vol_stats_map.get(vol.id)
         count = stat.total if stat else 0
         read_count = stat.read_count if stat else 0
+
+        # SMART COVER LOGIC
+        v_comics = volume_comics_map.get(vol.id, [])
+        cover_id = None
+
+        if v_comics:
+            # 1. Prefer Standards
+            standards = [c for c in v_comics if is_standard_format(c.format)]
+            pool = standards if standards else v_comics
+
+            # 2. Try Issue #1
+            issue_ones = [c for c in pool if c.number == '1']
+            if issue_ones:
+                cover_id = issue_ones[0].id
+            else:
+                # 3. Lowest Number
+                pool.sort(key=issue_sort_key)
+                cover_id = pool[0].id
+
         volumes_data.append({
             "volume_id": vol.id, "volume_number": vol.volume_number,
-            "first_issue_id": vol_cover_map.get(vol.id),
+            "first_issue_id": cover_id, # Replaces the SQL window function result
             "issue_count": count, "read": (count > 0 and read_count >= count)
         })
 
