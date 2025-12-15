@@ -306,6 +306,8 @@ class ScanManager:
             service = ThumbnailService(db_thumb, library_id)
             use_parallel = get_cached_setting('system.parallel_image_processing', False)
 
+            self.logger.info(f"Parallel image processing is set to {use_parallel}")
+
             if use_parallel:
                 stats = service.process_missing_thumbnails_parallel(force=force)
             else:
