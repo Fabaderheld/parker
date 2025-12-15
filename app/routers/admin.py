@@ -1,7 +1,12 @@
-from fastapi import APIRouter, Request
-from fastapi.responses import HTMLResponse
+import platform
+import sys
+import os
+
+from fastapi import APIRouter, Request, HTTPException
+from fastapi.responses import HTMLResponse, FileResponse
 
 from app.api.deps import AdminUser
+from app.config import settings
 from app.core.templates import templates
 
 router = APIRouter()
@@ -76,3 +81,48 @@ async def admin_migration_page(request: Request, admin_user: AdminUser):
     """Serve the Admin migration page"""
     return templates.TemplateResponse(request=request, name="admin/migration.html")
 
+
+@router.get("/about", response_class=HTMLResponse, name="about", tags=['admin'])
+async def admin_about_page(request: Request, admin_user: AdminUser):
+    """Serve the Admin About page"""
+
+    context = {
+        "app_version": settings.version,
+        "python_version": sys.version.split()[0],  # Get just the number (3.11.2)
+        "platform": platform.system(),
+        "platform_release": platform.release(),
+        "architecture": platform.machine(),
+        "github_url": "https://github.com/parker-server/parker"  # Or your actual repo
+    }
+
+    return templates.TemplateResponse(
+        request=request,
+        name="admin/about.html",
+        context=context
+    )
+
+
+@router.get("/logs/download", name="download_logs", tags=['admin'])
+async def download_latest_log(admin_user: AdminUser):
+    """
+    Finds the most recent .log file in the log directory and serves it.
+    """
+    log_dir = settings.log_dir
+
+    if not log_dir.exists():
+        raise HTTPException(status_code=404, detail="Log directory not found")
+
+    # Get all .log files
+    files = list(log_dir.glob("*.log"))
+
+    if not files:
+        raise HTTPException(status_code=404, detail="No log files found")
+
+    # Sort by modification time (Newest last)
+    latest_log = max(files, key=os.path.getmtime)
+
+    return FileResponse(
+        path=latest_log,
+        filename=latest_log.name,
+        media_type='text/plain'
+    )
