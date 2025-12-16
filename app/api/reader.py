@@ -5,6 +5,7 @@ from sqlalchemy.orm import joinedload
 from typing import List, Annotated, Optional, Literal
 from pathlib import Path
 import re
+import logging
 
 from app.core.comic_helpers import (get_format_sort_index, get_format_weight, get_age_rating_config,
                                     get_comic_age_restriction, get_banned_comic_condition)
@@ -18,6 +19,8 @@ from app.models.reading_progress import ReadingProgress
 from app.models.pull_list import PullList, PullListItem
 from app.models.reading_list import ReadingList, ReadingListItem
 from app.models.collection import Collection, CollectionItem
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -95,6 +98,7 @@ async def get_comic_reader_init(comic_id: int,
     # We must filter the "Next/Prev" lists so users don't navigate INTO a banned book.
     banned_filter = get_banned_comic_condition(current_user)
 
+    logger.debug(f"Context type for reader: {context_type}")
 
     # --- STRATEGY PATTERN ---
     if context_type == "pull_list" and context_id:
@@ -103,9 +107,14 @@ async def get_comic_reader_init(comic_id: int,
         context_label = db.query(PullList.name).filter(PullList.id == context_id).scalar()
 
         # Query items in THIS specific list, ordered by sort_order
-        query = db.query(PullListItem.comic_id).filter(
+        #Join Comic to avoid Cartesian Product
+        query = db.query(PullListItem.comic_id).join(Comic, PullListItem.comic_id == Comic.id).filter(
             PullListItem.pull_list_id == context_id
         )
+
+        #query = db.query(PullListItem.comic_id).filter(
+        #    PullListItem.pull_list_id == context_id
+        #)
 
         if banned_filter is not None:
             query = query.filter(~banned_filter)  # Exclude banned
@@ -120,7 +129,11 @@ async def get_comic_reader_init(comic_id: int,
 
         context_label = db.query(ReadingList.name).filter(ReadingList.id == context_id).scalar()
 
-        query = db.query(ReadingListItem.comic_id).filter(
+        #query = db.query(ReadingListItem.comic_id).filter(
+        #    ReadingListItem.reading_list_id == context_id
+        #)
+
+        query = db.query(ReadingListItem.comic_id).join(Comic, ReadingListItem.comic_id == Comic.id).filter(
             ReadingListItem.reading_list_id == context_id
         )
 
