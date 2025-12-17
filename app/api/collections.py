@@ -3,9 +3,9 @@ from sqlalchemy.orm import Session, joinedload, aliased
 from sqlalchemy import Float, func, select, and_, or_, not_
 from typing import List, Annotated
 
-from app.core.comic_helpers import (get_aggregated_metadata,
+from app.core.comic_helpers import (get_aggregated_metadata, get_series_age_restriction,
                                     get_banned_comic_condition, check_container_restriction)
-from app.api.deps import SessionDep, CurrentUser
+from app.api.deps import SessionDep, CurrentUser, AdminUser
 from app.models.collection import Collection, CollectionItem
 from app.models.comic import Comic, Volume
 from app.models.series import Series
@@ -41,13 +41,22 @@ async def list_collections(current_user: CurrentUser, db: SessionDep):
     if not is_superuser:
         count_stmt = count_stmt.where(Series.library_id.in_(allowed_ids))
 
+    # --- Apply Series Poison Pill to Count ---
+    # This ensures comics from "Banned Series" (even if the comics themselves are safe)
+    # do NOT count towards the collection's visible total.
+    series_age_filter = get_series_age_restriction(current_user)
+    if series_age_filter is not None:
+        count_stmt = count_stmt.where(series_age_filter)
+    # ----------------------------------------------
+
     visible_count_col = count_stmt.scalar_subquery()
 
     # 3. Main Query
     query = db.query(Collection, visible_count_col.label("v_count")) \
         .filter(visible_count_col > 0)
 
-    # --- AGE RATING POISON PILL ---
+    # --- AGE RATING POISON PILL (Container level) ---
+    # This checks for Explicitly Banned Comics (e.g., the specific Mature issue).
     banned_condition = get_banned_comic_condition(current_user)
     if banned_condition is not None:
         # Filter out Collections that contain ANY banned comic
@@ -169,7 +178,7 @@ async def get_collection(current_user: CurrentUser,
 
 
 @router.delete("/{collection_id}", name="delete")
-async def delete_collection(current_user: CurrentUser, collection_id: int, db: SessionDep):
+async def delete_collection(current_user: AdminUser, collection_id: int, db: SessionDep):
     collection = db.query(Collection).filter(Collection.id == collection_id).first()
     if not collection: raise HTTPException(status_code=404, detail="Collection not found")
     db.delete(collection)
