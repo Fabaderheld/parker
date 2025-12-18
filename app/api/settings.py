@@ -9,7 +9,7 @@ from app.models.user import User
 
 router = APIRouter()
 
-PUBLIC_KEYS = [ "ui.background_style", "ui.pagination_mode" ]
+PUBLIC_KEYS = [ "ui.background_style", "ui.pagination_mode", "ui.login_background_style", "ui.login_solid_color", "ui.login_static_cover" ]
 
 @router.get("/", response_model=Dict[str, List[SettingResponse]], status_code=200, name="list")
 def get_settings(db: SessionDep):

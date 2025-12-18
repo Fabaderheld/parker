@@ -36,14 +36,31 @@
 
     <!-- Background Images Layer (z-0) -->
     <div class="absolute inset-0 z-0">
-        <div class="absolute inset-0 bg-cover bg-center"
-             :style="`background-image: url('${currentImage}')`">
-        </div>
 
-        <div class="absolute inset-0 bg-cover bg-center transition-opacity duration-1000"
-             :class="isTransitioning ? 'opacity-100' : 'opacity-0'"
-             :style="`background-image: url('${nextImage}')`">
-        </div>
+        {% if login_bg_style == 'random_covers' %}
+            <!-- Cycling Random Covers -->
+            <div class="absolute inset-0 bg-cover bg-center"
+                 :style="`background-image: url('${currentImage}')`">
+            </div>
+
+            <div class="absolute inset-0 bg-cover bg-center transition-opacity duration-1000"
+                 :class="isTransitioning ? 'opacity-100' : 'opacity-0'"
+                 :style="`background-image: url('${nextImage}')`">
+            </div>
+        {% elif login_bg_style == 'solid_color' %}
+            <!-- Solid Color (static) -->
+            <div class="absolute inset-0"
+                 style="background: {{ login_solid_color }}">
+            </div>
+        {% elif login_bg_style == 'static_cover' %}
+            <!-- Static Cover (non-cycling) -->
+            <div class="absolute inset-0 bg-cover bg-center"
+                 style="background-image: url('{{ base_url }}/static/img/login-covers/{{ login_static_cover }}')">
+            </div>
+        {% else %}
+            <!-- None - Just gradient -->
+            <div class="absolute inset-0 bg-gray-900"></div>
+        {% endif %}
     </div>
 
     <!-- Gradient Overlays (z-10) -->
@@ -125,6 +142,9 @@ function loginCycler() {
         error: null,
         loading: false,
 
+        // Background Type
+        bgStyle: '{{ login_bg_style }}',
+
         // Background State
         images: [],
         currentIndex: 0,
@@ -137,7 +157,9 @@ function loginCycler() {
         fxEnabled: localStorage.getItem('parker-fx-enabled') !== 'false',
 
         init() {
-            this.fetchBackgrounds();
+            if (this.bgStyle === 'random_covers') {
+                this.fetchBackgrounds();
+            }
         },
 
         async fetchBackgrounds() {
