@@ -41,19 +41,31 @@ def comic_to_simple_dict(comic: Comic):
 
 
 def bulk_serialize_series(series_list: List[Series], db, current_user) -> List[dict]:
+
     if not series_list: return []
+
     series_ids = [s.id for s in series_list]
 
-    subquery = (
+    # 1. Fetch lightweight comic data for cover selection
+    # We fetch ALL comics for these series (lightweight columns only) to sort in Python.
+    # This enables Gimmick/Reverse logic that is too complex for efficient SQL.
+    raw_comics = (
         db.query(
-            Comic.id, Comic.year, Volume.series_id,
-            func.row_number().over(partition_by=Volume.series_id, order_by=func.cast(Comic.number, Float).asc()).label(
-                "rn")
-        ).join(Volume).filter(Volume.series_id.in_(series_ids)).subquery()
+            Comic.id,
+            Comic.number,
+            Comic.year,
+            Comic.format,
+            Volume.series_id
+        )
+        .join(Volume)
+        .filter(Volume.series_id.in_(series_ids))
+        .all()
     )
 
-    covers = db.query(subquery).filter(subquery.c.rn == 1).all()
-    cover_map = {row.series_id: row for row in covers}
+    # Group by Series
+    series_map = defaultdict(list)
+    for rc in raw_comics:
+        series_map[rc.series_id].append(rc)
 
     # 2. Batch Fetch Read Status (If user logged in)
     read_status_map = {}
@@ -71,10 +83,48 @@ def bulk_serialize_series(series_list: List[Series], db, current_user) -> List[d
         for row in stats:
             read_status_map[row.series_id] = (row.total > 0) and (row.read_count >= row.total)
 
+    # Helper: Check Format
+    def is_standard_format(fmt: str) -> bool:
+        if not fmt: return True
+        return fmt.lower() not in NON_PLAIN_FORMATS
+
+    # Helper: Safe Sort Key
+    def issue_sort_key(c):
+        try:
+            return float(c.number)
+        except:
+            return 999999
+
     # 3. Stitch it all together
     results = []
     for s in series_list:
-        cover = cover_map.get(s.id)
+        s_comics = series_map.get(s.id, [])
+        cover = None
+
+        if s_comics:
+
+            # Gimmick Detection
+            is_reverse = s.name.lower() in REVERSE_NUMBERING_SERIES
+
+            # Filter for standards
+            standards = [c for c in s_comics if is_standard_format(c.format)]
+            pool = standards if standards else s_comics
+
+            # Try finding Issue #1 (Only if NOT reverse)
+            # (Because for Countdown, #1 is the END, not the cover)
+            if not is_reverse:
+                issue_ones = [c for c in pool if c.number == '1']
+                if issue_ones:
+                    cover = issue_ones[0]
+
+            # Fallback: Sort and Pick First/Last
+            if not cover:
+                pool.sort(key=issue_sort_key)
+                if is_reverse:
+                    cover = pool[-1]  # Highest Number (e.g. Countdown #52)
+                else:
+                    cover = pool[0]  # Lowest Number (e.g. Spider-Man #1)
+
         results.append({
             "id": s.id, "name": s.name,
             "start_year": cover.year if cover else None,
