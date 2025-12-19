@@ -184,13 +184,27 @@ function libraryManager() {
         },
 
         async deleteLibrary(lib) {
-            if (!confirm(`Delete library "${lib.name}"? This removes all comics from the database (files remain intact).`)) return;
 
-            const res = await fetch(window.parker.route('libraries.delete', {library_id: lib.id}), { method: 'DELETE' });
-            if (res.ok) {
-                this.loadLibraries();
-            } else {
-                alert("Failed to delete library");
+            const confirmed = await window.parker.dialog.confirm(
+                `Delete Library ${lib.name}?`,
+                'This removes all comics from the database (files remain intact).',
+                { isDestructive: true, confirmText: 'Remove' }
+            );
+
+            if (confirmed) {
+                try {
+                    const res = await fetch(window.parker.route('libraries.delete',
+                        { library_id: lib.id }), { method: 'DELETE' }
+                    );
+
+                    if(res.ok) {
+                        this.loadLibraries();
+                        window.parker.showToast("Library deleted", "success");
+                    }
+                } catch(e) {
+                    console.error(e);
+                    await window.parker.dialog.alert('Error', 'Failed to delete library');
+                }
             }
         },
 
