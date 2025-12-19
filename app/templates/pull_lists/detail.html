@@ -220,14 +220,14 @@ function pullListDetail() {
 
                 // Reconstruct the array in the new order
                 this.list.items = newOrderIds.map(id => itemMap.get(id)).filter(i => i);
-            } catch(e) { console.error("Reorder failed", e); this.loadList(); }
+            } catch(e) { console.error('Reorder failed', e); this.loadList(); }
         },
 
         // Trigger the Modal
         async askRemoveItem(comicId) {
             const confirmed = await window.parker.dialog.confirm(
-                "Remove Item?",
-                "Are you sure you want to remove this comic from the list?",
+                'Remove Item?',
+                'Are you sure you want to remove this comic from the list?',
                 { isDestructive: true, confirmText: 'Remove' }
             );
 
@@ -240,7 +240,7 @@ function pullListDetail() {
 
                     if(res.ok) {
                         this.list.items = this.list.items.filter(i => i.id !== comicId);
-                        window.parker.showToast("Item removed", "success");
+                        window.parker.showToast('Item removed', 'success');
                     }
                 } catch(e) { console.error(e); }
             }
@@ -275,7 +275,7 @@ function pullListDetail() {
                     this.list.description = updated.description;
                     this.showEditModal = false;
 
-                    if(window.parker) window.parker.showToast("List updated", "success");
+                    if(window.parker) window.parker.showToast('List updated', 'success');
                 }
             } catch(e) { console.error(e); }
         }
