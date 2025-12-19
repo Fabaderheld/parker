@@ -9,6 +9,7 @@ class SettingBase(BaseModel):
     label: str
     description: Optional[str] = None
     options: Optional[List[Any]] = None
+    depends_on: Optional[Any] = None
 
 class SettingUpdate(BaseModel):
     value: Any

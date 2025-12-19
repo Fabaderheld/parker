@@ -6,6 +6,8 @@ from app.api.deps import SessionDep, ComicDep, VolumeDep, SeriesDep, LibraryDep,
 from app.core.templates import templates
 from app.models.comic import Comic, Volume
 from app.core.login_effects import get_active_effect
+from app.core.login_backgrounds import SOLID_COLORS, STATIC_COVERS
+from app.services.settings_service import SettingsService
 
 router = APIRouter()
 
@@ -106,10 +108,32 @@ async def comic_detail(request: Request, comic: ComicDep, user: CurrentUser):
     })
 
 @router.get("/login", response_class=HTMLResponse, name="login")
-async def login_page(request: Request):
-    return templates.TemplateResponse(request=request, name="login_full.html", context={
-        "active_effect": get_active_effect()
-    })
+async def login_page(request: Request, db: SessionDep):
+
+    svc = SettingsService(db)
+    login_background_style = svc.get("ui.login_background_style")
+
+    context = {
+        "active_effect": get_active_effect(),
+        "login_bg_style": login_background_style,
+    }
+
+    # Add specific context based on style
+    if login_background_style == "solid_color":
+        color_key = svc.get("ui.login_solid_color") or "gotham_night"
+        if color_key not in SOLID_COLORS:
+            color_key = "gotham_night"  # Handle stale DB values
+        color_data = SOLID_COLORS.get(color_key)
+        context["login_solid_color"] = color_data["gradient"]
+
+    elif login_background_style == "static_cover":
+        cover_filename = svc.get("ui.login_static_cover") or "amazing-fantasy-15.jpg"
+        if cover_filename not in STATIC_COVERS:
+            cover_filename = "amazing-fantasy-15.jpg"  # Handle stale DB values
+        context["login_static_cover"] = cover_filename
+
+
+    return templates.TemplateResponse(request=request, name="login_full.html", context=context)
 
 @router.get("/pull-lists", response_class=HTMLResponse, name="pull_lists")
 async def pull_lists_index(request: Request, user: CurrentUser):

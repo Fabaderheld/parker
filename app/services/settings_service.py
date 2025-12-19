@@ -4,6 +4,23 @@ from typing import Any, List, Dict
 
 from app.api.deps import SessionDep
 from app.core.settings_loader import invalidate_settings_cache
+from app.core.login_backgrounds import SOLID_COLORS, STATIC_COVERS
+
+def generate_color_options():
+    """Generate color options from SOLID_COLORS dictionary"""
+
+    return [
+        {"label": data["name"], "value": key, "group": data.get("group")}
+        for key, data in SOLID_COLORS.items()
+    ]
+
+def generate_cover_options():
+    """Generate cover options from STATIC_COVERS dictionary"""
+
+    return [
+        {"label": data["name"], "value": filename}
+        for filename, data in STATIC_COVERS.items()
+    ]
 
 class SettingsService:
     def __init__(self, db: SessionDep):
@@ -24,6 +41,39 @@ class SettingsService:
             "label": "Scan Batch Window (Sec)",
             "description": "Time to wait for file operations to settle."
         },
+        {
+            "key": "ui.login_background_style", "value": "random_covers",
+            "category": "appearance", "data_type": "select",
+            "label": "Login Background Style",
+            "description": "Choose what appears behind the login form.",
+            "options": [
+                {"label": "None (Gradient only)", "value": "none"},
+                {"label": "Random library covers", "value": "random_covers"},
+                {"label": "Solid Color", "value": "solid_color"},
+                {"label": "Static Cover", "value": "static_cover"}
+            ]
+        },
+        {
+            "key": "ui.login_solid_color",
+            "value": "superman_classic",
+            "category": "appearance",
+            "data_type": "select",
+            "label": "Login Solid Color",
+            "description": "Choose a color gradient.",
+            "depends_on": { "key": "ui.login_background_style", "value": "solid_color" },
+            "options": generate_color_options()
+        },
+        {
+            "key": "ui.login_static_cover",
+            "value": "amazing-fantasy-15.jpg",
+            "category": "appearance",
+            "data_type": "select",
+            "label": "Login Static Cover",
+            "description": "Choose an iconic comic cover.",
+            "depends_on": { "key": "ui.login_background_style", "value": "static_cover" },
+            "options": generate_cover_options()
+        },
+
         {
             "key": "ui.background_style", "value": "NONE",
             "category": "appearance", "data_type": "select",
@@ -175,6 +225,9 @@ class SettingsService:
                 if "options" in default:
                     setting.options = default["options"]
 
+                if "depends_on" in default:
+                    setting.depends_on = default["depends_on"]
+
                 # NOTE: If we strictly needed to force-update a value (e.g. security patch),
                 # we would need explicit logic here, but usually we leave .value alone.
 
@@ -189,6 +242,7 @@ class SettingsService:
             if s.category not in grouped:
                 grouped[s.category] = []
             grouped[s.category].append(s)
+
         return grouped
 
     def get(self, key: str) -> Any:
