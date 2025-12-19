@@ -175,11 +175,11 @@ function libraryManager() {
                     window.parker.showToast("Library saved", 'success');
                 } else {
                     const err = await res.json();
-                    alert("Error: " + (err.detail || "Operation failed"));
+                    await window.parker.dialog.alert('Error', (err.detail || 'Operation Failed'));
                 }
             } catch (e) {
                 console.error(e);
-                alert("Network error occurred");
+                await window.parker.dialog.alert('Error', 'Network error occurred');
             }
         },
 

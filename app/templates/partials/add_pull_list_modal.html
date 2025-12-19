@@ -148,7 +148,7 @@ function addPullListModal() {
 
             // SINGLE MODE (Legacy Logic)
             if (this.targetType !== 'comic') {
-                alert("Bulk add for Volumes/Series requires a backend update! Coming soon.");
+                await window.parker.dialog.alert('Info', 'Bulk add for Volumes/Series requires a backend update! Coming soon.');
                 return;
             }
 

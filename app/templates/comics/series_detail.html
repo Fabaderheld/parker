@@ -668,11 +668,11 @@ function seriesDetail() {
             try {
                 const res = await fetch(window.parker.route('series.regenerate_thumbnails', { series_id: this.seriesId }), { method: 'POST' });
                 if (res.ok) {
-                    alert("Regeneration started! Refresh the page in a minute to see changes.");
+                    await window.parker.dialog.alert('Info', 'Regeneration started! Refresh the page in a minute to see changes.');
                 } else if (res.status === 403 || res.status === 401) {
-                    alert("Only admins can perform this action.");
+                    await window.parker.dialog.alert('Error', 'Only admins can perform this action.');
                 } else {
-                    alert("Failed to start task.");
+                    await window.parker.dialog.alert('Error', 'Failed to start task');
                 }
             } catch (e) {
                 console.error(e);
