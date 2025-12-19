@@ -6,7 +6,7 @@
 
     const cid = "{{ id }}";
 
-    window.PAGE_CONTEXT = {
+    window.parker.page_color_context = {
         imageUrl: window.parker.route('comics.thumbnail', { comic_id: cid }),
         colors: {
             primary: '{{ colors.primary if colors and colors.primary else "#111111" }}',
