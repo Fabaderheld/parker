@@ -98,7 +98,15 @@ function continueReading() {
         },
 
         async markUnread(comicId) {
-            if(!confirm("Clear reading progress for this comic?")) return;
+
+            const confirmed = await window.parker.dialog.confirm(
+                "Clear progress?",
+                "Clear reading progress for this comic?",
+                { isDestructive: true, confirmText: 'Clear' }
+            );
+
+            if(!confirmed) { return; }
+
             try {
                 await fetch(window.parker.route('progress.mark_comic_as_unread', { comic_id: comicId} ), { method: 'DELETE' });
                 this.loadItems();
