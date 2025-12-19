@@ -596,7 +596,14 @@ document.addEventListener('alpine:init', () => {
         },
 
         async deleteSearch(id) {
-            if(!confirm("Delete this saved search?")) return;
+
+            const confirmed = await window.parker.dialog.confirm(
+                "Delete Item?",
+                "Delete this saved search?",
+                { isDestructive: true, confirmText: 'Delete' }
+            );
+
+            if(!confirmed) return;
             await fetch(window.parker.route('saved_searches.delete', { search_id: id }), { method: 'DELETE' });
             await this.loadSavedList(); // Refresh list
             window.parker.showToast("Saved Search deleted", "success");
