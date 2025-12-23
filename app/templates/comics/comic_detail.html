@@ -296,6 +296,19 @@
                         </div>
                     </template>
 
+                    <template x-if="comic?.story_arc">
+                        <div class="flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-4">
+                            <span class="text-gray-500 text-xs uppercase tracking-wider sm:w-24 sm:flex-shrink-0 sm:pt-1.5">Story Arcs</span>
+                            <div class="flex flex-wrap gap-2">
+                                <template x-for="arc in comic.story_arc.split(',').map(a => a.trim()).filter(Boolean)">
+                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm bg-gray-700/50 text-gray-200 border border-gray-600" x-text="arc"></span>
+                                </template>
+                            </div>
+                        </div>
+                    </template>
+
+
+
                 </div>
 
             </div>
